@@ -2,6 +2,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/services/location_permission_services.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_padding.dart';
 import 'controller/request_services_controller.dart';
@@ -22,7 +23,14 @@ class RequestServicesScreen extends GetView<RequestServicesController> {
             Obx(() {
               if (controller.selectedValue.value.isNotEmpty) {
                 return FadeIn(
-                  child: CustomButton(text: "Confirm", onPressed: () {}),
+                  child: CustomButton(
+                    text: "Confirm",
+                    onPressed: () {
+                      LocationPermissionServices.requestLocationPermission(
+                        context,
+                      );
+                    },
+                  ),
                 );
               }
               return const SizedBox.shrink();
