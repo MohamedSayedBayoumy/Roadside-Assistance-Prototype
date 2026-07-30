@@ -2,7 +2,8 @@ import 'package:get/get.dart';
 
 import '../features/login/binding/login_bindings.dart';
 import '../features/login/presentation/login_screen.dart';
-import '../features/request_service/presentation/screens/request_services_screen.dart';
+import '../features/request_service/binding/request_services_bindings.dart';
+import '../features/request_service/presentation/request_services_screen.dart';
 import '../features/splash_screen.dart';
 import '../features/track/presentation/track_screen.dart';
 import 'paths.dart';
@@ -20,6 +21,7 @@ class AppRoutes {
     GetPage(
       name: AppPaths.requestServices,
       page: () => const RequestServicesScreen(),
+      binding: RequestServicesBindings(),
     ),
 
     GetPage(name: AppPaths.track, page: () => const TrackScreen()),

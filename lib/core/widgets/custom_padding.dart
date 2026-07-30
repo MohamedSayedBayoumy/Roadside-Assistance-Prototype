@@ -14,14 +14,16 @@ class CustomPadding extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsetsDirectional.only(
-        bottom: bottom!,
-        end: end!,
-        start: start!,
-        top: top!,
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsetsDirectional.only(
+          bottom: bottom!,
+          end: end!,
+          start: start!,
+          top: top!,
+        ),
+        child: child,
       ),
-      child: child,
     );
   }
 }

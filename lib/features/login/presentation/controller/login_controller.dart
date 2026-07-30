@@ -5,6 +5,7 @@ import '../../../../core/constants/app_keys.dart';
 import '../../../../core/enums/screen_state.dart';
 import '../../../../core/services/flutter_secure_storage.dart';
 import '../../../../core/services/toasts.dart';
+import '../../../../routes/paths.dart';
 import '../../domain/login_entity/login_entity_body.dart';
 import '../../domain/login_use_case/login_use_case.dart';
 
@@ -51,6 +52,7 @@ class LoginController extends GetxController {
             key: AppKeys.isLoggedIn,
             value: 'true',
           );
+          Get.offAllNamed(AppPaths.requestServices);
         },
       );
     });
