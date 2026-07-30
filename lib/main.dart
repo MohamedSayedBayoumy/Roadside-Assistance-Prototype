@@ -1,22 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:toastification/toastification.dart';
 
-void main() {
-  runApp(const MyApp());
+import 'core/app_utils.dart';
+import 'core/constants/colors.dart';
+import 'routes/pages.dart';
+
+Future<void> main() async {
+  runApp(ToastificationWrapper(child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
+    return GetMaterialApp(
+      debugShowCheckedModeBanner: false,
+      navigatorKey: AppUtils.navigatorKey,
+      getPages: AppRoutes.getRoutes,
+      title: 'Task',
       theme: ThemeData(
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: false,
+        fontFamily: "main",
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.mainColor),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
-
