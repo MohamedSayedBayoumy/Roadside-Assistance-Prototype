@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../core/services/location_permission_services.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_padding.dart';
+import '../../../routes/paths.dart';
 import 'controller/request_services_controller.dart';
 import 'widgets/select_service_type_section.dart';
 
@@ -25,10 +26,15 @@ class RequestServicesScreen extends GetView<RequestServicesController> {
                 return FadeIn(
                   child: CustomButton(
                     text: "Confirm",
-                    onPressed: () {
-                      LocationPermissionServices.requestLocationPermission(
-                        context,
-                      );
+                    onPressed: () async {
+                      final permission =
+                          await LocationPermissionServices.requestLocationPermission(
+                            context,
+                          );
+
+                      if (permission == true) {
+                        Get.toNamed(AppPaths.track);
+                      }
                     },
                   ),
                 );

@@ -47,6 +47,8 @@ dependencies:
   dio:
   get: ^4.7.3
   shared_preferences:
+  mapbox_maps_flutter:
+  ffi:
 
 dev_dependencies:
   flutter_test:
