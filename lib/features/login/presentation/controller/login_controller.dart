@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../../core/constants/app_keys.dart';
 import '../../../../core/enums/screen_state.dart';
+import '../../../../core/services/flutter_secure_storage.dart';
 import '../../../../core/services/toasts.dart';
 import '../../domain/login_entity/login_entity_body.dart';
 import '../../domain/login_use_case/login_use_case.dart';
@@ -43,8 +45,12 @@ class LoginController extends GetxController {
           errorMessage = failure.failureMessage!;
           screenState.value = ScreenState.failed;
         },
-        (user) {
+        (user) async {
           screenState.value = ScreenState.loaded;
+          await SecureStorageService.writeData(
+            key: AppKeys.isLoggedIn,
+            value: 'true',
+          );
         },
       );
     });

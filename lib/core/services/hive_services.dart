@@ -31,7 +31,6 @@ class HiveService {
     }
   }
 
-  /// Open an Encrypted Box safely
   Future<Box<T>> openEncryptedBox<T>(String boxName) async {
     if (_encryptionCipherKey == null) {
       throw Exception(

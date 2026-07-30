@@ -1,3 +1,4 @@
 abstract class AppKeys {
-  static String userLogged = "userLogged";
+  static const String isLoggedIn = 'is_logged_in';
+  static const isFirstLaunchIos = 'is_first_launch_done';
 }

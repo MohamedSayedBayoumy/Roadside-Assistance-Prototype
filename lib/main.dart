@@ -1,12 +1,21 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:toastification/toastification.dart';
 
 import 'core/app_utils.dart';
 import 'core/constants/colors.dart';
+import 'core/services/ios_check.dart';
 import 'routes/pages.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isIOS) {
+    await IosCheckServices.checkAndRunFirstLaunch();
+  }
+
   runApp(ToastificationWrapper(child: const MyApp()));
 }
 
