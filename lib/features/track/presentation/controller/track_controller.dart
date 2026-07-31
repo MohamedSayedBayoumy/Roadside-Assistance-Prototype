@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Position;
 
+import '../../../../core/constants/colors.dart';
 import '../../../../core/enums/screen_state.dart';
 import '../../../../core/services/map_services.dart';
 import '../../domain/entity/latlong.dart';
@@ -22,6 +23,8 @@ class TrackController extends GetxController {
 
   PointAnnotationManager? _pointAnnotationManager;
   mapbox.PolylineAnnotationManager? _polylineAnnotationManager;
+  mapbox.PolylineAnnotation? _animatedPolyline;
+  Timer? _animationTimer;
 
   final fromPoint = PointModel(controller: TextEditingController()).obs;
   final toPoint = PointModel(controller: TextEditingController()).obs;
@@ -150,9 +153,7 @@ class TrackController extends GetxController {
         iconSize: 0.25,
       );
 
-      await _pointAnnotationManager!.create(options).whenComplete(() async {
-        await zoomToFitTwoPoints(fromPoint.value, point);
-      });
+      await _pointAnnotationManager!.create(options);
     } catch (e) {
       debugPrint("Error adding custom marker: $e");
     }
@@ -184,7 +185,7 @@ class TrackController extends GetxController {
 
       await mapboxMap!.flyTo(
         cameraOptions,
-        MapAnimationOptions(duration: 3000, startDelay: 0),
+        MapAnimationOptions(duration: 2000, startDelay: 0),
       );
     } catch (e) {
       debugPrint("Error zooming to fit points: $e");
@@ -201,35 +202,63 @@ class TrackController extends GetxController {
     }
   }
 
-  Future<void> drawRoute(String geometry) async {
+  Future<void> drawAnimatedRoute(String geometry) async {
     if (mapboxMap == null) return;
 
     try {
       List<PointLatLng> result = PolylinePoints.decodePolyline(geometry);
-      List<mapbox.Position> coordinates = result.map((point) {
+      List<mapbox.Position> allCoordinates = result.map((point) {
         return mapbox.Position(point.longitude, point.latitude);
       }).toList();
 
-      var lineString = mapbox.LineString(coordinates: coordinates);
+      if (allCoordinates.length < 2) return;
 
       _polylineAnnotationManager ??= await mapboxMap!.annotations
           .createPolylineAnnotationManager();
 
       await _polylineAnnotationManager!.deleteAll();
+      _animationTimer?.cancel();
+
+      List<mapbox.Position> currentCoordinates = [
+        allCoordinates[0],
+        allCoordinates[1],
+      ];
 
       var polylineOptions = mapbox.PolylineAnnotationOptions(
-        geometry: lineString,
-        lineColor: 0xFF007AFF,
+        geometry: mapbox.LineString(coordinates: currentCoordinates),
+        lineColor: AppColors.mainColor.toARGB32(),
         lineWidth: 5.0,
         lineJoin: mapbox.LineJoin.ROUND,
-        lineOpacity: 0.8,
       );
 
-      await _polylineAnnotationManager!.create(polylineOptions);
+      _animatedPolyline = await _polylineAnnotationManager!.create(
+        polylineOptions,
+      );
 
-      debugPrint("Route drawn successfully!");
+      int currentIndex = 2;
+
+      _animationTimer = Timer.periodic(const Duration(milliseconds: 30), (
+        timer,
+      ) async {
+        if (currentIndex >= allCoordinates.length) {
+          timer.cancel();
+          return;
+        }
+
+        currentCoordinates.add(allCoordinates[currentIndex]);
+        currentIndex++;
+
+        if (_animatedPolyline != null) {
+          _animatedPolyline!.geometry = mapbox.LineString(
+            coordinates: currentCoordinates,
+          );
+          await _polylineAnnotationManager!.update(_animatedPolyline!);
+        }
+      });
+
+      debugPrint("Animated route started successfully!");
     } catch (e) {
-      debugPrint("Error drawing route: $e");
+      debugPrint("Error drawing animated route: $e");
     }
   }
 
@@ -275,9 +304,11 @@ class TrackController extends GetxController {
       },
       (r) async {
         getDirectionsState.value = ScreenState.initial;
-        await Future.delayed(Duration(seconds: 5));
-        await addNewMapIcon(point: point);
-        drawRoute(r.routes!.first.geometry!);
+        zoomToFitTwoPoints(fromPoint.value, point);
+
+        addNewMapIcon(point: point);
+
+        drawAnimatedRoute(r.routes!.first.geometry!);
       },
     );
   }
