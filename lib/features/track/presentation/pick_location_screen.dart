@@ -1,16 +1,13 @@
 // ignore_for_file: deprecated_member_use
 
-import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
-import '../../../core/constants/colors.dart';
-import '../../../core/constants/images.dart';
-import '../../../core/widgets/custom_image.dart';
-import '../../../core/widgets/custom_loading.dart';
 import 'controller/track_controller.dart';
+import 'widgets/current_location_as_text_widget.dart';
 import 'widgets/footer_pick_location_widget.dart';
+import 'widgets/map_icon_widget.dart';
 
 class LocationPickerScreen extends GetView<TrackController> {
   const LocationPickerScreen({super.key});
@@ -53,59 +50,6 @@ class LocationPickerScreen extends GetView<TrackController> {
             child: FooterPickLocationWidget(controller: controller),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class CurrentLocationAsTextWidget extends StatelessWidget {
-  const CurrentLocationAsTextWidget({super.key, required this.controller});
-
-  final TrackController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return ZoomIn(
-      delay: Duration(milliseconds: 400),
-      child: Align(
-        alignment: Alignment.center,
-        child: Padding(
-          padding: EdgeInsets.only(bottom: 140),
-          child: Container(
-            padding: EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Obx(
-              () => controller.isFetchingAddress.value
-                  ? CustomLoading()
-                  : Text(controller.selectedAddress.value),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class MapIconWidget extends StatelessWidget {
-  const MapIconWidget({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ZoomIn(
-      delay: Duration(milliseconds: 600),
-      child: Align(
-        alignment: Alignment.center,
-        child: Padding(
-          padding: EdgeInsets.only(bottom: 40.0),
-          child: CustomImage(
-            path: AppImages.mapMarker,
-            width: 40,
-            color: AppColors.mainColor,
-          ),
-        ),
       ),
     );
   }

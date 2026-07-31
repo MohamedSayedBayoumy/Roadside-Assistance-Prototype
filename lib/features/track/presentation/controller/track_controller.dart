@@ -6,14 +6,15 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Position;
 
 import '../../../../core/services/map_services.dart';
+import '../../domain/entity/point_model.dart';
 
 class TrackController extends GetxController {
   RxBool isLayoutReady = false.obs;
   MapboxMap? mapboxMap;
 
-  RxString selectedAddress = ''.obs;
-  TextEditingController fromSearchController = TextEditingController();
-  TextEditingController toSearchController = TextEditingController();
+  final fromPoint = PointModel(controller: TextEditingController()).obs;
+  final toPoint = PointModel(controller: TextEditingController()).obs;
+  final selectLocation = PointModel(controller: TextEditingController()).obs;
 
   Position? userPosition;
 
@@ -45,7 +46,7 @@ class TrackController extends GetxController {
 
     String? address = await MapServices.getLocationAsString(userPosition!);
     if (address != null) {
-      fromSearchController.text = address;
+      fromPoint.value.controller.text = address;
     }
 
     await Future.delayed(const Duration(milliseconds: 500));
@@ -99,22 +100,22 @@ class TrackController extends GetxController {
       String? address = await MapServices.getLocationAsString(currentCenterPos);
 
       if (address != null && address.isNotEmpty) {
-        selectedAddress.value = address;
-      } else {
-        selectedAddress.value = "تعذر تحديد اسم المكان";
+        selectLocation.value = PointModel(
+          lat: latitude.value,
+          long: longitude.value,
+          controller: TextEditingController(text: address),
+        );
       }
-    } catch (e) {
-      selectedAddress.value = "حدث خطأ أثناء تحديد الموقع";
     } finally {
       isFetchingAddress.value = false;
     }
   }
 
-  void confirmPickedLocation() {
-    if (selectedAddress.value.isNotEmpty) {
-      toSearchController.text = selectedAddress.value;
-    }
-  }
+  // void confirmPickedLocation() {
+  //   if (selectedAddress.value.isNotEmpty) {
+  //     toSearchController.text = selectedAddress.value;
+  //   }
+  // }
 
   Future<void> saveCurrentMapState() async {
     if (mapboxMap != null) {
@@ -124,10 +125,9 @@ class TrackController extends GetxController {
 
   @override
   void onClose() {
-    _debounce
-        ?.cancel(); // مهم جداً نقفل الـ Timer لما الشاشة تتقفل عشان ميعملش Memory Leak
-    fromSearchController.dispose();
-    toSearchController.dispose();
+    _debounce?.cancel();
+    fromPoint.value.controller.dispose();
+    toPoint.value.controller.dispose();
     super.onClose();
   }
 }

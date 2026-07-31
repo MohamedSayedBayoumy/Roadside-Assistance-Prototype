@@ -11,37 +11,45 @@ class BottomSheetBodyWidget extends GetView<TrackController> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      controller: scrollController,
-      padding: const EdgeInsets.all(15),
-      children: [
-        Center(
-          child: Container(
-            width: 40,
-            height: 5,
-            margin: const EdgeInsets.only(bottom: 20),
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(10),
+    return Obx(
+      () => ListView(
+        controller: scrollController,
+        padding: const EdgeInsets.all(15),
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 5,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
-        ),
-        CustomLocationInputField(
-          icon: AppImages.hand,
-          hintText: "From",
-          controller: controller.fromSearchController,
-          trackingScrollController: controller,
-        ),
+          CustomLocationInputField(
+            icon: AppImages.hand,
+            hintText: "From",
+            controller: controller.fromPoint.value.controller,
+            trackingScrollController: controller,
+            callBackWithAddress: (address) {
+              controller.fromPoint.value = address.value;
+            },
+          ),
 
-        SizedBox(height: 10),
+          SizedBox(height: 10),
 
-        CustomLocationInputField(
-          icon: AppImages.flag,
-          hintText: "To",
-          controller: controller.toSearchController,
-          trackingScrollController: controller,
-        ),
-      ],
+          CustomLocationInputField(
+            icon: AppImages.flag,
+            hintText: "To",
+            controller: controller.toPoint.value.controller,
+            trackingScrollController: controller,
+            callBackWithAddress: (address) {
+              controller.toPoint.value = address.value;
+            },
+          ),
+        ],
+      ),
     );
   }
 }

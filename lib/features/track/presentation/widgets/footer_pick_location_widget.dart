@@ -36,7 +36,12 @@ class FooterPickLocationWidget extends StatelessWidget {
               ),
 
               Expanded(
-                child: CustomButton(text: "Confirm", onPressed: () {}),
+                child: CustomButton(
+                  text: "Confirm",
+                  onPressed: () {
+                    Get.back(result: controller.selectLocation);
+                  },
+                ),
               ),
             ],
           ),

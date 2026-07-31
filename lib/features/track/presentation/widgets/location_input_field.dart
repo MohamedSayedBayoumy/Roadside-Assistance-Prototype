@@ -6,6 +6,7 @@ import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/fonts.dart';
 import '../../../../core/constants/images.dart';
 import '../../../../routes/paths.dart';
+import '../../domain/entity/point_model.dart';
 import '../controller/track_controller.dart';
 
 class CustomLocationInputField extends StatefulWidget {
@@ -15,6 +16,7 @@ class CustomLocationInputField extends StatefulWidget {
   final String hintText;
   final Color iconColor;
   final TrackController trackingScrollController;
+  final Function(Rx<PointModel>)? callBackWithAddress;
 
   const CustomLocationInputField({
     super.key,
@@ -23,6 +25,7 @@ class CustomLocationInputField extends StatefulWidget {
     this.labelText = 'To',
     this.hintText = '',
     this.iconColor = Colors.white,
+    this.callBackWithAddress,
     required this.trackingScrollController,
   });
 
@@ -102,7 +105,8 @@ class _CustomLocationInputFieldState extends State<CustomLocationInputField> {
             InkWell(
               onTap: () async {
                 await widget.trackingScrollController.saveCurrentMapState();
-                Get.toNamed(AppPaths.pickLocation);
+                final address = await Get.toNamed(AppPaths.pickLocation);
+                widget.callBackWithAddress!(address!);
               },
               child: FadeIn(
                 duration: Duration(seconds: 1),
