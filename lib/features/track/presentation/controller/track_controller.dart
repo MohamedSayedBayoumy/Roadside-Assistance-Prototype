@@ -10,6 +10,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Position;
 import '../../../../core/constants/colors.dart';
 import '../../../../core/enums/screen_state.dart';
 import '../../../../core/services/map_services.dart';
+import '../../domain/entity/direction_entity.dart';
 import '../../domain/entity/latlong.dart';
 import '../../domain/entity/point_model.dart';
 import '../../domain/use_case/track_use_case.dart';
@@ -20,11 +21,16 @@ class TrackController extends GetxController {
   TrackController({required this.trackUseCase});
   RxBool isLayoutReady = false.obs;
   MapboxMap? mapboxMap;
+  DirectionEntity? directionEntity;
 
   PointAnnotationManager? _pointAnnotationManager;
+
   mapbox.PolylineAnnotationManager? _polylineAnnotationManager;
   mapbox.PolylineAnnotation? _animatedPolyline;
   Timer? _animationTimer;
+
+  mapbox.PointAnnotationManager? _driverMarkerManager;
+  mapbox.PointAnnotation? _driverMarker;
 
   final fromPoint = PointModel(controller: TextEditingController()).obs;
   final toPoint = PointModel(controller: TextEditingController()).obs;
@@ -304,6 +310,8 @@ class TrackController extends GetxController {
       },
       (r) async {
         getDirectionsState.value = ScreenState.initial;
+
+        directionEntity = r;
         zoomToFitTwoPoints(fromPoint.value, point);
 
         addNewMapIcon(point: point);
@@ -311,6 +319,126 @@ class TrackController extends GetxController {
         drawAnimatedRoute(r.routes!.first.geometry!);
       },
     );
+  }
+
+  double _calculateBearing(mapbox.Position start, mapbox.Position end) {
+    double lat1 = start.lat * math.pi / 180.0;
+    double lng1 = start.lng * math.pi / 180.0;
+    double lat2 = end.lat * math.pi / 180.0;
+    double lng2 = end.lng * math.pi / 180.0;
+
+    double dLng = lng2 - lng1;
+
+    double y = math.sin(dLng) * math.cos(lat2);
+    double x =
+        math.cos(lat1) * math.sin(lat2) -
+        math.sin(lat1) * math.cos(lat2) * math.cos(dLng);
+
+    double bearing = math.atan2(y, x);
+    return (bearing * 180.0 / math.pi + 360.0) % 360.0;
+  }
+
+  Timer? _frameTimer;
+  Future<void> _animateCarBetween(
+    mapbox.Position start,
+    mapbox.Position end,
+    int durationMillis,
+  ) async {
+    Completer<void> completer = Completer();
+
+    int frameRate = 16;
+    int totalFrames = durationMillis ~/ frameRate;
+    int currentFrame = 0;
+
+    double bearing = _calculateBearing(start, end);
+
+    if (_driverMarker != null) {
+      _driverMarker!.iconRotate = bearing;
+    }
+
+    _frameTimer?.cancel();
+    _frameTimer = Timer.periodic(Duration(milliseconds: frameRate), (
+      timer,
+    ) async {
+      currentFrame++;
+      double t = currentFrame / totalFrames;
+
+      if (t >= 1.0) {
+        t = 1.0;
+        timer.cancel();
+        completer.complete();
+      }
+
+      double interpolatedLat = start.lat + ((end.lat - start.lat) * t);
+      double interpolatedLng = start.lng + ((end.lng - start.lng) * t);
+
+      mapbox.Position newPosition = mapbox.Position(
+        interpolatedLng,
+        interpolatedLat,
+      );
+
+      if (_driverMarker != null) {
+        _driverMarker!.geometry = mapbox.Point(coordinates: newPosition);
+        await _driverMarkerManager!.update(_driverMarker!);
+      }
+    });
+
+    return completer.future;
+  }
+
+  bool _isSimulationRunning = false;
+  Future<void> startSmoothDriverSimulation() async {
+    if (mapboxMap == null) return;
+    _isSimulationRunning = true;
+
+    try {
+      List<PointLatLng> result = PolylinePoints.decodePolyline(
+        directionEntity!.routes!.first.geometry!,
+      );
+      List<mapbox.Position> routeCoordinates = result.map((point) {
+        return mapbox.Position(point.longitude, point.latitude);
+      }).toList();
+
+      if (routeCoordinates.isEmpty) return;
+
+      _driverMarkerManager ??= await mapboxMap!.annotations
+          .createPointAnnotationManager();
+      await _driverMarkerManager!.deleteAll();
+
+      var initialPointOptions = mapbox.PointAnnotationOptions(
+        geometry: mapbox.Point(coordinates: routeCoordinates.first),
+        image: MapServices.carIcon,
+        iconSize: .3,
+      );
+
+      _driverMarker = await _driverMarkerManager!.create(initialPointOptions);
+
+      for (int i = 0; i < routeCoordinates.length - 1; i++) {
+        if (!_isSimulationRunning) break;
+
+        mapbox.Position start = routeCoordinates[i];
+        mapbox.Position end = routeCoordinates[i + 1];
+
+        mapboxMap!.easeTo(
+          mapbox.CameraOptions(
+            center: mapbox.Point(coordinates: end),
+            zoom: 14.0,
+          ),
+          mapbox.MapAnimationOptions(duration: 1000),
+        );
+
+        await _animateCarBetween(start, end, 1000);
+      }
+
+      debugPrint("Driver reached the destination smoothly!");
+    } catch (e) {
+      debugPrint("Error in smooth driver simulation: $e");
+    }
+  }
+
+  void stopSimulation() {
+    _isSimulationRunning = false;
+    _frameTimer?.cancel();
   }
 
   @override

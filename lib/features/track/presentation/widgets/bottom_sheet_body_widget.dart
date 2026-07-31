@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:freelance/core/widgets/custom_button.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/constants/images.dart';
@@ -47,6 +48,15 @@ class BottomSheetBodyWidget extends GetView<TrackController> {
             callBackWithAddress: (address) {
               controller.toPoint.value = address.value;
               controller.getDirections(point: address.value);
+            },
+          ),
+
+          SizedBox(height: 30),
+
+          CustomButton(
+            text: "Start",
+            onPressed: () {
+              controller.startSmoothDriverSimulation();
             },
           ),
         ],

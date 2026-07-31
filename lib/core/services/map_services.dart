@@ -12,6 +12,7 @@ import 'hive_services.dart';
 
 abstract class MapServices {
   static Uint8List? icon;
+  static Uint8List? carIcon;
   static Future<geolocator.Position?> getCurrentLocation() async {
     bool serviceEnabled =
         await geolocator.Geolocator.isLocationServiceEnabled();
@@ -94,6 +95,30 @@ abstract class MapServices {
     );
 
     icon = imageData;
+  }
+
+  static Future<void> carMarker() async {
+    const String boxName = 'cache_box';
+
+    Uint8List? cachedImageData = await HiveService.instance.getData<Uint8List>(
+      boxName: boxName,
+      key: AppKeys.carIcon,
+    );
+
+    if (cachedImageData != null) {
+      carIcon = cachedImageData;
+    }
+
+    final ByteData bytes = await rootBundle.load(AppImages.truck);
+    final Uint8List imageData = bytes.buffer.asUint8List();
+
+    await HiveService.instance.saveData<Uint8List>(
+      boxName: boxName,
+      key: AppKeys.carIcon,
+      value: imageData,
+    );
+
+    carIcon = imageData;
   }
 }
 

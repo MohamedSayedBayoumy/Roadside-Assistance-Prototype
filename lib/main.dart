@@ -23,6 +23,7 @@ Future<void> main() async {
 
   await HiveService.instance.init();
   MapServices.getOrAddCustomMarker();
+  MapServices.carMarker();
   MapboxOptions.setAccessToken(FFIHelper.fetchStringFromC());
 
   runApp(ToastificationWrapper(child: const MyApp()));
