@@ -1,21 +1,27 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:freelance/core/constants/colors.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Position;
 
+import '../../../../core/enums/screen_state.dart';
 import '../../../../core/services/map_services.dart';
+import '../../domain/entity/latlong.dart';
 import '../../domain/entity/point_model.dart';
+import '../../domain/use_case/track_use_case.dart';
 
 class TrackController extends GetxController {
+  final TrackUseCase trackUseCase;
+
+  TrackController({required this.trackUseCase});
   RxBool isLayoutReady = false.obs;
   MapboxMap? mapboxMap;
 
   PointAnnotationManager? _pointAnnotationManager;
-  PolylineAnnotationManager? _polyLineAnnotationManager;
+  mapbox.PolylineAnnotationManager? _polylineAnnotationManager;
 
   final fromPoint = PointModel(controller: TextEditingController()).obs;
   final toPoint = PointModel(controller: TextEditingController()).obs;
@@ -33,6 +39,8 @@ class TrackController extends GetxController {
   Timer? _debounce;
 
   CameraState? savedCameraState;
+
+  final getDirectionsState = ScreenState.initial.obs;
 
   @override
   void onReady() {
@@ -143,7 +151,6 @@ class TrackController extends GetxController {
       );
 
       await _pointAnnotationManager!.create(options).whenComplete(() async {
-        minimizeSheet();
         await zoomToFitTwoPoints(fromPoint.value, point);
       });
     } catch (e) {
@@ -177,37 +184,10 @@ class TrackController extends GetxController {
 
       await mapboxMap!.flyTo(
         cameraOptions,
-        MapAnimationOptions(duration: 2000, startDelay: 0),
+        MapAnimationOptions(duration: 3000, startDelay: 0),
       );
     } catch (e) {
       debugPrint("Error zooming to fit points: $e");
-    }
-  }
-
-  Future<void> drawLineBetweenTwoPoints(PointModel p1, PointModel p2) async {
-    if (mapboxMap == null) return;
-
-    try {
-      _polyLineAnnotationManager ??= await mapboxMap!.annotations
-          .createPolylineAnnotationManager();
-
-      await _pointAnnotationManager!.deleteAll();
-
-      final lineOptions = PolylineAnnotationOptions(
-        geometry: LineString(
-          coordinates: [
-            mapbox.Position(p1.long!, p1.lat!),
-            mapbox.Position(p2.long!, p2.lat!),
-          ],
-        ),
-        lineColor: AppColors.mainColor.toARGB32(),
-        lineWidth: 5.0,
-        lineJoin: LineJoin.ROUND,
-      );
-
-      await _polyLineAnnotationManager!.create(lineOptions);
-    } catch (e) {
-      debugPrint("Error drawing line: $e");
     }
   }
 
@@ -219,6 +199,87 @@ class TrackController extends GetxController {
         curve: Curves.easeInOut,
       );
     }
+  }
+
+  Future<void> drawRoute(String geometry) async {
+    if (mapboxMap == null) return;
+
+    try {
+      List<PointLatLng> result = PolylinePoints.decodePolyline(geometry);
+      List<mapbox.Position> coordinates = result.map((point) {
+        return mapbox.Position(point.longitude, point.latitude);
+      }).toList();
+
+      var lineString = mapbox.LineString(coordinates: coordinates);
+
+      _polylineAnnotationManager ??= await mapboxMap!.annotations
+          .createPolylineAnnotationManager();
+
+      await _polylineAnnotationManager!.deleteAll();
+
+      var polylineOptions = mapbox.PolylineAnnotationOptions(
+        geometry: lineString,
+        lineColor: 0xFF007AFF,
+        lineWidth: 5.0,
+        lineJoin: mapbox.LineJoin.ROUND,
+        lineOpacity: 0.8,
+      );
+
+      await _polylineAnnotationManager!.create(polylineOptions);
+
+      debugPrint("Route drawn successfully!");
+    } catch (e) {
+      debugPrint("Error drawing route: $e");
+    }
+  }
+
+  Future<void> animateToLocation({
+    PointModel? point,
+    double zoom = 3.0,
+    int durationMillis = 1500,
+  }) async {
+    if (mapboxMap == null) return;
+
+    try {
+      mapboxMap?.flyTo(
+        CameraOptions(
+          center: Point(coordinates: mapbox.Position(0, 0)),
+          zoom: 3.0,
+          pitch: 45.0,
+        ),
+        MapAnimationOptions(duration: 2500, startDelay: 0),
+      );
+    } catch (e) {
+      debugPrint("Error animating camera: $e");
+    }
+  }
+
+  Future<void> getDirections({required PointModel point}) async {
+    animateToLocation(zoom: 5);
+    minimizeSheet();
+    getDirectionsState.value = ScreenState.loading;
+
+    final result = await trackUseCase.getDirections(
+      startPoint: Latlong(
+        lat: fromPoint.value.lat!,
+        long: fromPoint.value.long!,
+      ),
+      endPoint: Latlong(lat: toPoint.value.lat!, long: toPoint.value.long!),
+    );
+
+    result.fold(
+      (f) {
+        animateToLocation(zoom: 15, point: fromPoint.value);
+
+        getDirectionsState.value = ScreenState.failed;
+      },
+      (r) async {
+        getDirectionsState.value = ScreenState.initial;
+        await Future.delayed(Duration(seconds: 5));
+        await addNewMapIcon(point: point);
+        drawRoute(r.routes!.first.geometry!);
+      },
+    );
   }
 
   @override

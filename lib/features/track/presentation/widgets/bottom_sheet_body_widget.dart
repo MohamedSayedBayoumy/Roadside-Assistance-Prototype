@@ -46,7 +46,7 @@ class BottomSheetBodyWidget extends GetView<TrackController> {
             trackingScrollController: controller,
             callBackWithAddress: (address) {
               controller.toPoint.value = address.value;
-              controller.addNewMapIcon(point: address.value);
+              controller.getDirections(point: address.value);
             },
           ),
         ],
