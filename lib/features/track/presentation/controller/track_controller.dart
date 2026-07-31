@@ -268,29 +268,11 @@ class TrackController extends GetxController {
     }
   }
 
-  Future<void> animateToLocation({
-    PointModel? point,
-    double zoom = 3.0,
-    int durationMillis = 1500,
-  }) async {
-    if (mapboxMap == null) return;
-
-    try {
-      mapboxMap?.flyTo(
-        CameraOptions(
-          center: Point(coordinates: mapbox.Position(0, 0)),
-          zoom: 3.0,
-          pitch: 45.0,
-        ),
-        MapAnimationOptions(duration: 2500, startDelay: 0),
-      );
-    } catch (e) {
-      debugPrint("Error animating camera: $e");
-    }
-  }
-
   Future<void> getDirections({required PointModel point}) async {
-    animateToLocation(zoom: 5);
+    if (_driverMarkerManager != null) {
+      await _driverMarkerManager!.deleteAll();
+      _driverMarker = null;
+    }
     minimizeSheet();
     getDirectionsState.value = ScreenState.loading;
 
@@ -304,8 +286,6 @@ class TrackController extends GetxController {
 
     result.fold(
       (f) {
-        animateToLocation(zoom: 15, point: fromPoint.value);
-
         getDirectionsState.value = ScreenState.failed;
       },
       (r) async {
@@ -343,6 +323,7 @@ class TrackController extends GetxController {
     mapbox.Position start,
     mapbox.Position end,
     int durationMillis,
+    List<mapbox.Position> remainingRoute, // <-- ضفنا المتغير ده هنا
   ) async {
     Completer<void> completer = Completer();
 
@@ -381,6 +362,15 @@ class TrackController extends GetxController {
         _driverMarker!.geometry = mapbox.Point(coordinates: newPosition);
         await _driverMarkerManager!.update(_driverMarker!);
       }
+
+      if (_animatedPolyline != null && _polylineAnnotationManager != null) {
+        List<mapbox.Position> updatedLine = [newPosition, ...remainingRoute];
+
+        _animatedPolyline!.geometry = mapbox.LineString(
+          coordinates: updatedLine,
+        );
+        await _polylineAnnotationManager!.update(_animatedPolyline!);
+      }
     });
 
     return completer.future;
@@ -392,6 +382,8 @@ class TrackController extends GetxController {
     _isSimulationRunning = true;
 
     try {
+      _animationTimer?.cancel();
+
       List<PointLatLng> result = PolylinePoints.decodePolyline(
         directionEntity!.routes!.first.geometry!,
       );
@@ -419,6 +411,8 @@ class TrackController extends GetxController {
         mapbox.Position start = routeCoordinates[i];
         mapbox.Position end = routeCoordinates[i + 1];
 
+        List<mapbox.Position> remainingRoute = routeCoordinates.sublist(i + 1);
+
         mapboxMap!.easeTo(
           mapbox.CameraOptions(
             center: mapbox.Point(coordinates: end),
@@ -427,7 +421,7 @@ class TrackController extends GetxController {
           mapbox.MapAnimationOptions(duration: 1000),
         );
 
-        await _animateCarBetween(start, end, 1000);
+        await _animateCarBetween(start, end, 1000, remainingRoute);
       }
 
       debugPrint("Driver reached the destination smoothly!");
