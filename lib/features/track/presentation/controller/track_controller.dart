@@ -96,7 +96,6 @@ class TrackController extends GetxController {
       fromPoint.value.long = userPosition!.longitude;
     }
 
-    await Future.delayed(const Duration(milliseconds: 500));
 
     const animationDurationMillis = 2500;
 

@@ -6,6 +6,7 @@ import '../core/connection/connection_services.dart';
 import '../core/constants/app_keys.dart';
 import '../core/constants/fonts.dart';
 import '../core/services/flutter_secure_storage.dart';
+import '../core/services/location_permission_services.dart';
 import '../routes/paths.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     InternetConnectionService().init();
+    LocationPermissionServices.requestLocationPermission();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startSplash();

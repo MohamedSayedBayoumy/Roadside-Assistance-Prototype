@@ -1,36 +1,42 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:freelance/core/app_utils.dart';
-import 'package:permission_handler/permission_handler.dart';
-
+import 'package:geolocator/geolocator.dart';
 import '../widgets/open_setting_widget.dart';
 
 abstract class LocationPermissionServices {
-  static Future<bool> hasPermission() async {
-    var status = await Permission.location.status;
-    return status.isGranted;
-  }
-
   static Future<bool> requestLocationPermission() async {
-    var status = await Permission.location.status;
-
-    if (status.isGranted) {
-      return true;
+    if (Platform.isAndroid) {
+      bool isServiceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!isServiceEnabled) {
+        await Geolocator.openLocationSettings();
+        isServiceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (!isServiceEnabled) {
+          return false;
+        }
+      }
     }
 
-    if (status.isPermanentlyDenied) {
-      if (AppUtils.navigatorKey.currentContext!.mounted) {
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.deniedForever) {
+      if (AppUtils.navigatorKey.currentContext != null &&
+          AppUtils.navigatorKey.currentContext!.mounted) {
         _showSettingsBottomSheet(AppUtils.navigatorKey.currentContext!);
       }
       return false;
     }
 
-    var result = await Permission.location.request();
-
-    if (result.isGranted) {
-      return true;
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return false;
+      }
     }
 
-    return false;
+    return permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse;
   }
 
   static void _showSettingsBottomSheet(BuildContext context) {

@@ -39,6 +39,7 @@ class RequestServicesScreen extends GetView<RequestServicesController> {
               }
               return const SizedBox.shrink();
             }),
+            SizedBox(height: 20),
           ],
         ),
       ),
