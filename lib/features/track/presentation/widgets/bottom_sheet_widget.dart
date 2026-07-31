@@ -12,7 +12,7 @@ class BottomSheetWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.5,
+      initialChildSize: 0.45,
       minChildSize: 0.4,
       maxChildSize: 0.9,
       snap: true,

@@ -24,9 +24,6 @@ class TrackScreen extends GetView<TrackController> {
               key: const ValueKey("mapWidget"),
               onMapCreated: (mapController) =>
                   controller.onMapCreated(mapController, context),
-              onMapIdleListener: (mapIdleEventData) {
-                controller.updateAddressFromCenter();
-              },
               cameraOptions: CameraOptions(zoom: 4.0, pitch: 0.0),
             ),
 

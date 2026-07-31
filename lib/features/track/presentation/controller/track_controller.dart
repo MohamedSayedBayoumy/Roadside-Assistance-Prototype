@@ -1,14 +1,11 @@
-import 'dart:developer';
-
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
-import 'package:geolocator/geolocator.dart' as geolocator;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Position;
 
-import '../../../../core/services/location_permission_services.dart';
+import '../../../../core/services/map_services.dart';
 
 class TrackController extends GetxController {
   RxBool isLayoutReady = false.obs;
@@ -18,6 +15,14 @@ class TrackController extends GetxController {
   TextEditingController fromSearchController = TextEditingController();
   TextEditingController toSearchController = TextEditingController();
 
+  Position? userPosition;
+
+  RxDouble latitude = 0.0.obs;
+  RxDouble longitude = 0.0.obs;
+  RxBool isFetchingAddress = false.obs;
+
+  Timer? _debounce;
+
   @override
   void onReady() {
     super.onReady();
@@ -26,34 +31,29 @@ class TrackController extends GetxController {
 
   void onMapCreated(MapboxMap controller, BuildContext context) {
     mapboxMap = controller;
-
     mapboxMap!.location.updateSettings(
       LocationComponentSettings(enabled: true, pulsingEnabled: true),
     );
-
     getUserPosition(context);
   }
 
   Future<void> getUserPosition(BuildContext context) async {
-    bool serviceEnabled =
-        await geolocator.Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
+    userPosition = await MapServices.getCurrentLocation();
+    if (userPosition == null) return;
 
-    bool hasPermission =
-        await LocationPermissionServices.requestLocationPermission();
-    if (!hasPermission) return;
-
-    geolocator.Position position =
-        await geolocator.Geolocator.getCurrentPosition();
-
-    getMyLocationAsString(position);
+    String? address = await MapServices.getLocationAsString(userPosition!);
+    if (address != null) {
+      fromSearchController.text = address;
+    }
 
     await Future.delayed(const Duration(milliseconds: 1500));
-
     mapboxMap?.flyTo(
       CameraOptions(
         center: Point(
-          coordinates: mapbox.Position(position.longitude, position.latitude),
+          coordinates: mapbox.Position(
+            userPosition!.longitude,
+            userPosition!.latitude,
+          ),
         ),
         zoom: 15.0,
         pitch: 45.0,
@@ -62,84 +62,61 @@ class TrackController extends GetxController {
     );
   }
 
-  Future<String?> getMyLocationAsString(Position position) async {
-    try {
-      final placeMarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-      if (placeMarks.isEmpty) {
-        return '${position.latitude}, ${position.longitude}';
-      }
-      final p = placeMarks.first;
+  void onCameraMoved(double lat, double lng) {
+    latitude.value = lat;
+    longitude.value = lng;
 
-      final parts = <String>[
-        p.subLocality ?? '',
-        p.locality ?? p.country ?? '',
-      ].where((e) => e.trim().isNotEmpty).toList();
-      if (parts.isEmpty) {
-        return '${position.latitude}, ${position.longitude}';
-      }
-
-      fromSearchController.text = parts.join(' , ');
-    } catch (_) {
-      return null;
+    if (_debounce?.isActive ?? false) {
+      _debounce!.cancel();
     }
-    return null;
+
+    isFetchingAddress.value = true;
+    selectedAddress.value = "جاري تحديد المكان...";
+
+    _debounce = Timer(const Duration(milliseconds: 800), () {
+      _fetchAddress(lat, lng);
+    });
   }
 
-  Future<void> updateAddressFromCenter() async {
-    log("message");
-    if (mapboxMap == null) return;
+  Future<void> _fetchAddress(double lat, double lng) async {
     try {
-      final cameraState = await mapboxMap!.getCameraState();
-      final lng = cameraState.center.coordinates.lng as double;
-      final lat = cameraState.center.coordinates.lat as double;
+      Position currentCenterPos = Position(
+        longitude: lng,
+        latitude: lat,
+        timestamp: DateTime.now(),
+        accuracy: 0,
+        altitude: 0,
+        heading: 0,
+        speed: 0,
+        speedAccuracy: 0,
+        altitudeAccuracy: 0,
+        headingAccuracy: 0,
+      );
 
-      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
-      if (placemarks.isNotEmpty) {
-        final place = placemarks.first;
-        selectedAddress.value =
-            "${place.street ?? ''}, ${place.subLocality ?? ''}, ${place.locality ?? ''}, ${place.country ?? ''}"
-                .replaceAll(RegExp(r'^, |, $'), '')
-                .replaceAll(', , ', ', ');
+      String? address = await MapServices.getLocationAsString(currentCenterPos);
+
+      if (address != null && address.isNotEmpty) {
+        selectedAddress.value = address;
+      } else {
+        selectedAddress.value = "تعذر تحديد اسم المكان";
       }
     } catch (e) {
-      selectedAddress.value = "تعذر تحديد الموقع";
+      selectedAddress.value = "حدث خطأ أثناء تحديد الموقع";
+    } finally {
+      isFetchingAddress.value = false;
     }
   }
 
-  // Future<void> searchAddress() async {
-  //   if (searchController.text.trim().isEmpty) return;
-  //   FocusManager.instance.primaryFocus?.unfocus();
-
-  //   try {
-  //     List<Location> locations = await locationFromAddress(
-  //       searchController.text,
-  //     );
-  //     if (locations.isNotEmpty) {
-  //       final lat = locations.first.latitude;
-  //       final lng = locations.first.longitude;
-
-  //       mapboxMap?.flyTo(
-  //         CameraOptions(
-  //           center: Point(coordinates: mapbox.Position(lng, lat)),
-  //           zoom: 15.0,
-  //           pitch: 0.0,
-  //         ),
-  //         MapAnimationOptions(duration: 1500, startDelay: 0),
-  //       );
-  //     }
-  //   } catch (e) {
-  //     Get.snackbar(
-  //       "تنبيه",
-  //       "لم يتم العثور على المكان، حاول كتابة الاسم بشكل أدق",
-  //     );
-  //   }
-  // }
+  void confirmPickedLocation() {
+    if (selectedAddress.value.isNotEmpty) {
+      toSearchController.text = selectedAddress.value;
+    }
+  }
 
   @override
   void onClose() {
+    _debounce
+        ?.cancel(); // مهم جداً نقفل الـ Timer لما الشاشة تتقفل عشان ميعملش Memory Leak
     fromSearchController.dispose();
     toSearchController.dispose();
     super.onClose();

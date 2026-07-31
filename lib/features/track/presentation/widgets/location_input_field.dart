@@ -1,9 +1,11 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
-import 'package:freelance/core/constants/colors.dart';
+import 'package:get/get.dart';
 
+import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/fonts.dart';
 import '../../../../core/constants/images.dart';
+import '../../../../routes/paths.dart';
 
 class CustomLocationInputField extends StatefulWidget {
   final String icon;
@@ -95,7 +97,9 @@ class _CustomLocationInputFieldState extends State<CustomLocationInputField> {
           if (_isFocused) ...[
             const SizedBox(width: 8),
             InkWell(
-              onTap: () {},
+              onTap: () {
+                Get.toNamed(AppPaths.pickLocation);
+              },
               child: FadeIn(
                 duration: Duration(seconds: 1),
                 child: Image.asset(AppImages.location, width: 30),
