@@ -12,6 +12,8 @@ class TrackController extends GetxController {
   RxBool isLayoutReady = false.obs;
   MapboxMap? mapboxMap;
 
+  PointAnnotationManager? _pointAnnotationManager;
+
   final fromPoint = PointModel(controller: TextEditingController()).obs;
   final toPoint = PointModel(controller: TextEditingController()).obs;
   final selectLocation = PointModel(controller: TextEditingController()).obs;
@@ -47,6 +49,8 @@ class TrackController extends GetxController {
     String? address = await MapServices.getLocationAsString(userPosition!);
     if (address != null) {
       fromPoint.value.controller.text = address;
+      fromPoint.value.lat = userPosition!.latitude;
+      fromPoint.value.long = userPosition!.longitude;
     }
 
     await Future.delayed(const Duration(milliseconds: 500));
@@ -120,6 +124,25 @@ class TrackController extends GetxController {
   Future<void> saveCurrentMapState() async {
     if (mapboxMap != null) {
       savedCameraState = await mapboxMap!.getCameraState();
+    }
+  }
+
+  Future<void> addNewMapIcon({required PointModel point}) async {
+    if (mapboxMap == null) return;
+
+    try {
+      _pointAnnotationManager ??= await mapboxMap!.annotations
+          .createPointAnnotationManager();
+
+      final options = PointAnnotationOptions(
+        geometry: Point(coordinates: mapbox.Position(point.long!, point.lat!)),
+        image: MapServices.icon,
+        iconSize: 0.25,
+      );
+
+      await _pointAnnotationManager!.create(options);
+    } catch (e) {
+      debugPrint("Error adding custom marker: $e");
     }
   }
 
