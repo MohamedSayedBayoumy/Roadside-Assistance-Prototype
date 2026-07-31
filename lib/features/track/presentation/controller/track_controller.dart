@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:freelance/core/constants/colors.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
@@ -13,10 +15,14 @@ class TrackController extends GetxController {
   MapboxMap? mapboxMap;
 
   PointAnnotationManager? _pointAnnotationManager;
+  PolylineAnnotationManager? _polyLineAnnotationManager;
 
   final fromPoint = PointModel(controller: TextEditingController()).obs;
   final toPoint = PointModel(controller: TextEditingController()).obs;
   final selectLocation = PointModel(controller: TextEditingController()).obs;
+
+  final DraggableScrollableController sheetController =
+      DraggableScrollableController();
 
   Position? userPosition;
 
@@ -115,12 +121,6 @@ class TrackController extends GetxController {
     }
   }
 
-  // void confirmPickedLocation() {
-  //   if (selectedAddress.value.isNotEmpty) {
-  //     toSearchController.text = selectedAddress.value;
-  //   }
-  // }
-
   Future<void> saveCurrentMapState() async {
     if (mapboxMap != null) {
       savedCameraState = await mapboxMap!.getCameraState();
@@ -134,15 +134,90 @@ class TrackController extends GetxController {
       _pointAnnotationManager ??= await mapboxMap!.annotations
           .createPointAnnotationManager();
 
+      await _pointAnnotationManager!.deleteAll();
+
       final options = PointAnnotationOptions(
         geometry: Point(coordinates: mapbox.Position(point.long!, point.lat!)),
         image: MapServices.icon,
         iconSize: 0.25,
       );
 
-      await _pointAnnotationManager!.create(options);
+      await _pointAnnotationManager!.create(options).whenComplete(() async {
+        minimizeSheet();
+        await zoomToFitTwoPoints(fromPoint.value, point);
+      });
     } catch (e) {
       debugPrint("Error adding custom marker: $e");
+    }
+  }
+
+  Future<void> zoomToFitTwoPoints(PointModel p1, PointModel p2) async {
+    if (mapboxMap == null) return;
+
+    try {
+      double minLat = math.min(p1.lat!, p2.lat!);
+      double maxLat = math.max(p1.lat!, p2.lat!);
+      double minLng = math.min(p1.long!, p2.long!);
+      double maxLng = math.max(p1.long!, p2.long!);
+
+      final bounds = CoordinateBounds(
+        southwest: Point(coordinates: mapbox.Position(minLng, minLat)),
+        northeast: Point(coordinates: mapbox.Position(maxLng, maxLat)),
+        infiniteBounds: false,
+      );
+
+      final cameraOptions = await mapboxMap!.cameraForCoordinateBounds(
+        bounds,
+        MbxEdgeInsets(top: 100, left: 50, bottom: 450, right: 50),
+        null,
+        null,
+        null,
+        null,
+      );
+
+      await mapboxMap!.flyTo(
+        cameraOptions,
+        MapAnimationOptions(duration: 2000, startDelay: 0),
+      );
+    } catch (e) {
+      debugPrint("Error zooming to fit points: $e");
+    }
+  }
+
+  Future<void> drawLineBetweenTwoPoints(PointModel p1, PointModel p2) async {
+    if (mapboxMap == null) return;
+
+    try {
+      _polyLineAnnotationManager ??= await mapboxMap!.annotations
+          .createPolylineAnnotationManager();
+
+      await _pointAnnotationManager!.deleteAll();
+
+      final lineOptions = PolylineAnnotationOptions(
+        geometry: LineString(
+          coordinates: [
+            mapbox.Position(p1.long!, p1.lat!),
+            mapbox.Position(p2.long!, p2.lat!),
+          ],
+        ),
+        lineColor: AppColors.mainColor.toARGB32(),
+        lineWidth: 5.0,
+        lineJoin: LineJoin.ROUND,
+      );
+
+      await _polyLineAnnotationManager!.create(lineOptions);
+    } catch (e) {
+      debugPrint("Error drawing line: $e");
+    }
+  }
+
+  void minimizeSheet() {
+    if (sheetController.isAttached) {
+      sheetController.animateTo(
+        0.22,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
     }
   }
 
