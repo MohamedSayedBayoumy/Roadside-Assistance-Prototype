@@ -49,6 +49,8 @@ dependencies:
   shared_preferences:
   mapbox_maps_flutter:
   ffi:
+  geolocator:
+  geocoding:
 
 dev_dependencies:
   flutter_test:

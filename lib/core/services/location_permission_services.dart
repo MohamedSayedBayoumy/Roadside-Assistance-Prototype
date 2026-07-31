@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:freelance/core/app_utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../widgets/open_setting_widget.dart';
@@ -9,7 +10,7 @@ abstract class LocationPermissionServices {
     return status.isGranted;
   }
 
-  static Future<bool> requestLocationPermission(BuildContext context) async {
+  static Future<bool> requestLocationPermission() async {
     var status = await Permission.location.status;
 
     if (status.isGranted) {
@@ -17,7 +18,9 @@ abstract class LocationPermissionServices {
     }
 
     if (status.isPermanentlyDenied) {
-      if (context.mounted) _showSettingsBottomSheet(context);
+      if (AppUtils.navigatorKey.currentContext!.mounted) {
+        _showSettingsBottomSheet(AppUtils.navigatorKey.currentContext!);
+      }
       return false;
     }
 

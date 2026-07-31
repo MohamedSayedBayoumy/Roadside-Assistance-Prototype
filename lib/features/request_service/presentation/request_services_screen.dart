@@ -28,9 +28,7 @@ class RequestServicesScreen extends GetView<RequestServicesController> {
                     text: "Confirm",
                     onPressed: () async {
                       final permission =
-                          await LocationPermissionServices.requestLocationPermission(
-                            context,
-                          );
+                          await LocationPermissionServices.requestLocationPermission();
 
                       if (permission == true) {
                         Get.toNamed(AppPaths.track);
