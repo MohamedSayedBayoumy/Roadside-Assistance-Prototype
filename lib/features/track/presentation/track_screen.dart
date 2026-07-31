@@ -23,11 +23,20 @@ class TrackScreen extends GetView<TrackController> {
             MapWidget(
               key: const ValueKey("mapWidget"),
               onMapCreated: (mapController) =>
-                  controller.onMapCreated(mapController, context),
+                  controller.onMapCreated(mapController),
               cameraOptions: CameraOptions(zoom: 4.0, pitch: 0.0),
             ),
 
-            BottomSheetWidget(controller: controller),
+            AnimatedSlide(
+              offset: controller.isMapAnimationFinished.value
+                  ? Offset.zero
+                  : const Offset(0, 1),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOutCubic,
+              child: controller.isMapAnimationFinished.value
+                  ? BottomSheetWidget(controller: controller)
+                  : const SizedBox.shrink(),
+            ),
           ],
         );
       }),

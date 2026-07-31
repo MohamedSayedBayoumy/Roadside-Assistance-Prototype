@@ -1,3 +1,4 @@
+import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:freelance/core/widgets/custom_button.dart';
 import 'package:get/get.dart';
@@ -12,8 +13,8 @@ class BottomSheetBodyWidget extends GetView<TrackController> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(
-      () => ListView(
+    return Obx(() {
+      return ListView(
         controller: scrollController,
         padding: const EdgeInsets.all(15),
         children: [
@@ -28,17 +29,13 @@ class BottomSheetBodyWidget extends GetView<TrackController> {
               ),
             ),
           ),
-           CustomLocationInputField(
-              icon: AppImages.hand,
-              hintText: "From",
-              controller: controller.fromPoint.value.controller,
-              trackingScrollController: controller,
-              showPickIcon: false,
-              callBackWithAddress: (address) {
-                controller.fromPoint.value = address.value;
-              },
-            ),
-     
+          CustomLocationInputField(
+            icon: AppImages.hand,
+            hintText: "From",
+            controller: controller.fromPoint.value.controller,
+            trackingScrollController: controller,
+            showPickIcon: false,
+          ),
 
           SizedBox(height: 10),
 
@@ -55,14 +52,23 @@ class BottomSheetBodyWidget extends GetView<TrackController> {
 
           SizedBox(height: 30),
 
-          CustomButton(
-            text: "Start",
-            onPressed: () {
-              controller.startSmoothDriverSimulation();
-            },
-          ),
+          if (controller.toPoint.value.lat != null) ...[
+            ZoomIn(
+              delay: Duration(seconds: 1),
+              child: CustomButton(
+                text: controller.isTripActive.value == false ? "Start" : "End",
+                onPressed: () {
+                  if (controller.isTripActive.value == false) {
+                    controller.startSmoothDriverSimulation();
+                  } else {
+                    controller.cancelTrip();
+                  }
+                },
+              ),
+            ),
+          ],
         ],
-      ),
-    );
+      );
+    });
   }
 }

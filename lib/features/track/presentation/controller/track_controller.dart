@@ -56,21 +56,24 @@ class TrackController extends GetxController {
   mapbox.Position? _currentCarPosition;
   Completer<bool>? _currentFrameCompleter;
 
+  RxBool isMapAnimationFinished = false.obs;
+
+  RxBool isTripActive = false.obs;
   @override
   void onReady() {
     super.onReady();
     isLayoutReady.value = true;
   }
 
-  void onMapCreated(MapboxMap controller, BuildContext context) {
+  void onMapCreated(MapboxMap controller) {
     mapboxMap = controller;
     mapboxMap!.location.updateSettings(
       LocationComponentSettings(enabled: true, pulsingEnabled: true),
     );
-    getUserPosition(context);
+    getUserPosition();
   }
 
-  Future<void> getUserPosition(BuildContext context) async {
+  Future<void> getUserPosition() async {
     userPosition = await MapServices.getCurrentLocation();
     if (userPosition == null) return;
 
@@ -82,6 +85,9 @@ class TrackController extends GetxController {
     }
 
     await Future.delayed(const Duration(milliseconds: 500));
+
+    const animationDurationMillis = 2500;
+
     mapboxMap?.flyTo(
       CameraOptions(
         center: Point(
@@ -93,8 +99,12 @@ class TrackController extends GetxController {
         zoom: 15.0,
         pitch: 45.0,
       ),
-      MapAnimationOptions(duration: 2500, startDelay: 0),
+      MapAnimationOptions(duration: animationDurationMillis, startDelay: 0),
     );
+
+    await Future.delayed(const Duration(milliseconds: animationDurationMillis));
+
+    isMapAnimationFinished.value = true;
   }
 
   void onCameraMoved(CameraChangedEventData cameraChangedEventData) {
@@ -441,6 +451,8 @@ class TrackController extends GetxController {
       _driverMarker = await _driverMarkerManager!.create(initialPointOptions);
       _currentCarPosition = _remainingCoordinates.first;
 
+      isTripActive.value = true;
+
       await _runSimulationLoop();
     } catch (e) {
       debugPrint("Error in smooth driver simulation: $e");
@@ -482,7 +494,7 @@ class TrackController extends GetxController {
   }
 
   Future<void> _runSimulationLoop() async {
-    double carSpeedMps = 120.0;
+    double carSpeedMps = 150.0;
 
     while (_remainingCoordinates.length > 1 &&
         _isSimulationRunning &&
@@ -525,13 +537,55 @@ class TrackController extends GetxController {
 
     if (_remainingCoordinates.length <= 1 && !_isPaused) {
       _isSimulationRunning = false;
+      isTripActive.value = false;
       debugPrint("Driver reached the destination smoothly!");
     }
   }
 
   void stopSimulation() {
     _isSimulationRunning = false;
+    _isPaused = false;
+    isTripActive.value = false;
     _frameTimer?.cancel();
+    _remainingCoordinates.clear();
+    _currentCarPosition = null;
+  }
+
+  Future<void> cancelTrip() async {
+    stopSimulation();
+    _animationTimer?.cancel();
+    isTripActive.value = false;
+
+    directionEntity = null;
+    getDirectionsState.value = ScreenState.initial;
+
+    try {
+      await _polylineAnnotationManager?.deleteAll();
+      await _driverMarkerManager?.deleteAll();
+      await _pointAnnotationManager?.deleteAll();
+
+      _animatedPolyline = null;
+      _driverMarker = null;
+    } catch (e) {
+      debugPrint("Error clearing map elements: $e");
+    }
+
+    await mapboxMap?.location.updateSettings(
+      LocationComponentSettings(enabled: true, pulsingEnabled: true),
+    );
+
+    toPoint.value.controller.clear();
+    toPoint.value = PointModel(controller: TextEditingController());
+
+    await getUserPosition();
+
+    if (sheetController.isAttached) {
+      sheetController.animateTo(
+        0.5,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   @override
