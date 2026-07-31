@@ -33,6 +33,9 @@ class CustomLocationInputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pickNewLocation =
+        showPickIcon == true &&
+        trackingScrollController.isTripActive.value == false;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
       decoration: BoxDecoration(
@@ -41,8 +44,7 @@ class CustomLocationInputField extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () async {
-          if (showPickIcon == true &&
-              trackingScrollController.isTripActive.value == false) {
+          if (pickNewLocation) {
             await trackingScrollController.saveCurrentMapState();
             final address = await Get.toNamed(AppPaths.pickLocation);
             callBackWithAddress!(address!);
@@ -85,7 +87,7 @@ class CustomLocationInputField extends StatelessWidget {
                 ],
               ),
             ),
-            if (showPickIcon == true) ...[
+            if (pickNewLocation) ...[
               const SizedBox(width: 8),
               ZoomIn(
                 duration: Duration(seconds: 1),

@@ -48,27 +48,32 @@ class DioFailure extends CommonFailedModel {
   }) {
     switch (dioType!) {
       case DioExceptionType.connectionTimeout:
-        log("DioExceptionType.connectionTimeout");
         return DioFailure(
-          failureMessage: 'errors.connection_error',
+          failureMessageTitle: "Connection Timeout",
+          failureMessage:
+              'Connection to the server timed out. Please check your internet connection and try again.',
           modelException: exception!,
         );
       case DioExceptionType.sendTimeout:
         log("DioExceptionType.sendTimeout");
         return DioFailure(
-          failureMessage: 'errors.timeout_30s',
+          failureMessageTitle: "Send Timeout",
+          failureMessage:
+              'Taking too long to send data to the server. Please try again.',
           modelException: exception!,
         );
       case DioExceptionType.receiveTimeout:
-        log("DioExceptionType.receiveTimeout");
         return DioFailure(
-          failureMessage: 'errors.timeout_30s',
+          failureMessageTitle: "Receive Timeout",
+          failureMessage:
+              'Taking too long to receive data from the server. Please try again.',
           modelException: exception!,
         );
       case DioExceptionType.badCertificate:
-        log("DioExceptionType.badCertificate");
         return DioFailure(
-          failureMessage: 'errors.bad_certificate',
+          failureMessageTitle: "Security Error",
+          failureMessage:
+              'Security certificate verification failed. The connection might be insecure.',
           modelException: exception!,
         );
       case DioExceptionType.badResponse:
@@ -76,30 +81,40 @@ class DioFailure extends CommonFailedModel {
 
         return DioFailure(
           failureMessageTitle: "Failed",
-          failureMessage: exception?.response?.data["message"],
+          failureMessage:
+              exception?.response?.data["message"] ??
+              "An error occurred with the server.",
           modelException: exception!,
         );
       case DioExceptionType.cancel:
-        log("DioExceptionType.cancel");
         return DioFailure(
-          failureMessage: 'errors.request_canceled',
+          failureMessageTitle: "Request Cancelled",
+          failureMessage: 'The request to the server was cancelled.',
           modelException: exception!,
         );
 
       case DioExceptionType.connectionError:
         return DioFailure(
-          failureMessage: 'errors.connection_error',
+          failureMessageTitle: "No Internet Connection",
+          failureMessage:
+              'Unable to connect to the server. Please check your network and try again.',
           modelException: exception!,
         );
 
       case DioExceptionType.unknown:
-        log("DioExceptionType.unknown");
         return DioFailure(
-          failureMessage: 'errors.unknown',
+          failureMessageTitle: "Unexpected Error",
+          failureMessage:
+              'An unexpected error occurred. Please try again later.',
           modelException: exception!,
         );
       case DioExceptionType.transformTimeout:
-        throw UnimplementedError();
+        return DioFailure(
+          failureMessageTitle: "Data Processing Error",
+          failureMessage:
+              'Taking too long to process the data. Please try again.',
+          modelException: exception!,
+        );
     }
   }
 }

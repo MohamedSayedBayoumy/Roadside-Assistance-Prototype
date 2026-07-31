@@ -26,7 +26,7 @@ class TrackRemoteDataImpel implements TrackRemoteData {
     try {
       final response = await dioServices.get(
         path:
-            "driving-traffi/${startPoint.long},${startPoint.lat};${endPoint.long},${endPoint.lat}",
+            "driving-traffic/${startPoint.long},${startPoint.lat};${endPoint.long},${endPoint.lat}",
         queryParameters: {
           "access_token": FFIHelper.fetchStringFromC(),
           "overview": "full",
