@@ -268,8 +268,13 @@ class TrackController extends GetxController {
     }
   }
 
+  Future<void> handleFromPoint() async {}
+
   Future<void> getDirections({required PointModel point}) async {
     if (_driverMarkerManager != null) {
+      await mapboxMap!.location.updateSettings(
+        LocationComponentSettings(enabled: true),
+      );
       await _driverMarkerManager!.deleteAll();
       _driverMarker = null;
     }
@@ -382,6 +387,9 @@ class TrackController extends GetxController {
     _isSimulationRunning = true;
 
     try {
+      await mapboxMap!.location.updateSettings(
+        LocationComponentSettings(enabled: false),
+      );
       _animationTimer?.cancel();
 
       List<PointLatLng> result = PolylinePoints.decodePolyline(

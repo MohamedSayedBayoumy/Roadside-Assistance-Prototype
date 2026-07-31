@@ -33,6 +33,7 @@ class BottomSheetBodyWidget extends GetView<TrackController> {
             hintText: "From",
             controller: controller.fromPoint.value.controller,
             trackingScrollController: controller,
+            showPickIcon: false,
             callBackWithAddress: (address) {
               controller.fromPoint.value = address.value;
             },

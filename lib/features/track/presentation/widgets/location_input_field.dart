@@ -9,7 +9,7 @@ import '../../../../routes/paths.dart';
 import '../../domain/entity/point_model.dart';
 import '../controller/track_controller.dart';
 
-class CustomLocationInputField extends StatefulWidget {
+class CustomLocationInputField extends StatelessWidget {
   final String icon;
   final TextEditingController controller;
   final String labelText;
@@ -17,6 +17,7 @@ class CustomLocationInputField extends StatefulWidget {
   final Color iconColor;
   final TrackController trackingScrollController;
   final Function(Rx<PointModel>)? callBackWithAddress;
+  final bool showPickIcon;
 
   const CustomLocationInputField({
     super.key,
@@ -26,49 +27,22 @@ class CustomLocationInputField extends StatefulWidget {
     this.hintText = '',
     this.iconColor = Colors.white,
     this.callBackWithAddress,
+    this.showPickIcon = true,
     required this.trackingScrollController,
   });
-
-  @override
-  State<CustomLocationInputField> createState() =>
-      _CustomLocationInputFieldState();
-}
-
-class _CustomLocationInputFieldState extends State<CustomLocationInputField> {
-  late FocusNode _focusNode;
-  bool _isFocused = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _focusNode = FocusNode();
-    _focusNode.addListener(() {
-      setState(() {
-        _isFocused = _focusNode.hasFocus;
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
       decoration: BoxDecoration(
-        border: Border.all(
-          color: _isFocused ? AppColors.mainColor : Colors.black,
-        ),
+        border: Border.all(color: AppColors.mainColor),
         borderRadius: BorderRadius.circular(12.0),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Image.asset(widget.icon, width: 24),
+          Image.asset(icon, width: 24),
           const SizedBox(width: 16.0),
           Expanded(
             child: Column(
@@ -77,12 +51,11 @@ class _CustomLocationInputFieldState extends State<CustomLocationInputField> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  widget.hintText,
+                  hintText,
                   style: const TextStyle(color: Colors.grey, fontSize: 14.0),
                 ),
                 TextFormField(
-                  controller: widget.controller,
-                  focusNode: _focusNode, // ربطنا الـ FocusNode هنا
+                  controller: controller,
                   style: AppFonts.style15,
                   cursorColor: AppColors.mainColor,
                   decoration: const InputDecoration(
@@ -100,13 +73,13 @@ class _CustomLocationInputFieldState extends State<CustomLocationInputField> {
               ],
             ),
           ),
-          if (_isFocused) ...[
+          if (showPickIcon == true) ...[
             const SizedBox(width: 8),
             InkWell(
               onTap: () async {
-                await widget.trackingScrollController.saveCurrentMapState();
+                await trackingScrollController.saveCurrentMapState();
                 final address = await Get.toNamed(AppPaths.pickLocation);
-                widget.callBackWithAddress!(address!);
+                callBackWithAddress!(address!);
               },
               child: FadeIn(
                 duration: Duration(seconds: 1),
