@@ -28,16 +28,17 @@ class BottomSheetBodyWidget extends GetView<TrackController> {
               ),
             ),
           ),
-          CustomLocationInputField(
-            icon: AppImages.hand,
-            hintText: "From",
-            controller: controller.fromPoint.value.controller,
-            trackingScrollController: controller,
-            showPickIcon: false,
-            callBackWithAddress: (address) {
-              controller.fromPoint.value = address.value;
-            },
-          ),
+           CustomLocationInputField(
+              icon: AppImages.hand,
+              hintText: "From",
+              controller: controller.fromPoint.value.controller,
+              trackingScrollController: controller,
+              showPickIcon: false,
+              callBackWithAddress: (address) {
+                controller.fromPoint.value = address.value;
+              },
+            ),
+     
 
           SizedBox(height: 10),
 

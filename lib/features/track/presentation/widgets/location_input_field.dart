@@ -54,20 +54,23 @@ class CustomLocationInputField extends StatelessWidget {
                   hintText,
                   style: const TextStyle(color: Colors.grey, fontSize: 14.0),
                 ),
-                TextFormField(
-                  controller: controller,
-                  style: AppFonts.style15,
-                  cursorColor: AppColors.mainColor,
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    contentPadding: EdgeInsetsDirectional.only(
-                      top: 4.0,
-                      bottom: 0,
-                      end: 10,
+                IgnorePointer(
+                  ignoring: true,
+                  child: TextFormField(
+                    controller: controller,
+                    style: AppFonts.style15,
+                    cursorColor: AppColors.mainColor,
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      contentPadding: EdgeInsetsDirectional.only(
+                        top: 4.0,
+                        bottom: 0,
+                        end: 10,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
                     ),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
                   ),
                 ),
               ],
