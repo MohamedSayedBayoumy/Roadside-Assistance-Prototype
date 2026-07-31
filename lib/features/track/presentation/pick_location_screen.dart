@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:freelance/core/constants/colors.dart';
 import 'package:freelance/core/constants/images.dart';
 import 'package:freelance/core/widgets/custom_image.dart';
+import 'package:freelance/core/widgets/custom_loading.dart';
 import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -38,7 +39,8 @@ class LocationPickerScreen extends GetView<TrackController> {
           ),
 
           ZoomIn(
-            delay: Duration(seconds: 1),
+            delay: Duration(milliseconds: 1100),
+
             child: Align(
               alignment: Alignment.center,
               child: Padding(
@@ -52,6 +54,27 @@ class LocationPickerScreen extends GetView<TrackController> {
             ),
           ),
 
+          ZoomIn(
+            delay: Duration(seconds: 1),
+            child: Align(
+              alignment: Alignment.center,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 140),
+                child: Container(
+                  padding: EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Obx(
+                    () => controller.isFetchingAddress.value
+                        ? CustomLoading()
+                        : Text(controller.selectedAddress.value),
+                  ),
+                ),
+              ),
+            ),
+          ),
           Positioned(
             bottom: 30,
             left: 15,

@@ -1,4 +1,3 @@
-import 'package:freelance/core/constants/app_keys.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geolocator/geolocator.dart' as geolocator;
@@ -7,6 +6,7 @@ import '../../../../core/services/location_permission_services.dart';
 
 import 'package:flutter/services.dart';
 
+import '../constants/app_keys.dart';
 import '../constants/images.dart';
 import 'hive_services.dart';
 
@@ -38,18 +38,38 @@ abstract class MapServices {
       }
       final p = placeMarks.first;
 
-      final parts = <String>[
-        p.subLocality ?? '',
-        p.locality ?? p.country ?? '',
-      ].where((e) => e.trim().isNotEmpty).toList();
-      if (parts.isEmpty) {
-        return '${position.latitude}, ${position.longitude}';
-      }
+      final location = getFormattedAddress(p);
 
-      return parts.join(' , ');
+      return location;
     } catch (_) {
       return null;
     }
+  }
+
+  static String getFormattedAddress(Placemark place) {
+    List<String> addressParts = [];
+
+    if (place.name != null && place.name!.isNotEmpty) {
+      addressParts.add(place.name!);
+    }
+
+    if (place.thoroughfare != null &&
+        place.thoroughfare!.isNotEmpty &&
+        place.thoroughfare != place.name) {
+      addressParts.add(place.thoroughfare!);
+    } else if (place.street != null &&
+        place.street!.isNotEmpty &&
+        place.street != place.name) {
+      addressParts.add(place.street!);
+    }
+
+    if (place.subLocality != null && place.subLocality!.isNotEmpty) {
+      addressParts.add(place.subLocality!);
+    } else if (place.locality != null && place.locality!.isNotEmpty) {
+      addressParts.add(place.locality!);
+    }
+
+    return addressParts.join(', ');
   }
 
   static Future<void> getOrAddCustomMarker() async {
