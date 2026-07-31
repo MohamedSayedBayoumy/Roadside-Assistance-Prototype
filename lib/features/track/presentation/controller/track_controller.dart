@@ -59,6 +59,8 @@ class TrackController extends GetxController {
   RxBool isMapAnimationFinished = false.obs;
 
   RxBool isTripActive = false.obs;
+
+  RxBool isRouteAnimationFinished = false.obs;
   @override
   void onReady() {
     super.onReady();
@@ -154,6 +156,8 @@ class TrackController extends GetxController {
   }
 
   Future<void> saveCurrentMapState() async {
+    isRouteAnimationFinished.value = false;
+
     if (mapboxMap != null) {
       savedCameraState = await mapboxMap!.getCameraState();
     }
@@ -227,6 +231,7 @@ class TrackController extends GetxController {
     if (mapboxMap == null) return;
 
     try {
+      isRouteAnimationFinished.value = false;
       List<PointLatLng> result = PolylinePoints.decodePolyline(geometry);
       List<mapbox.Position> allCoordinates = result.map((point) {
         return mapbox.Position(point.longitude, point.latitude);
@@ -262,6 +267,7 @@ class TrackController extends GetxController {
         timer,
       ) async {
         if (currentIndex >= allCoordinates.length) {
+          isRouteAnimationFinished.value = true;
           timer.cancel();
           return;
         }

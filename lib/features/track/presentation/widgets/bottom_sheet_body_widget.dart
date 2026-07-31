@@ -52,9 +52,9 @@ class BottomSheetBodyWidget extends GetView<TrackController> {
 
           SizedBox(height: 30),
 
-          if (controller.toPoint.value.lat != null) ...[
+          if (controller.toPoint.value.lat != null &&
+              controller.isRouteAnimationFinished.value == true) ...[
             ZoomIn(
-              delay: Duration(seconds: 1),
               child: CustomButton(
                 text: controller.isTripActive.value == false ? "Start" : "End",
                 onPressed: () {
