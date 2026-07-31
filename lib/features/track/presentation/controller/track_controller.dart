@@ -248,7 +248,7 @@ class TrackController extends GetxController {
 
       int currentIndex = 2;
 
-      _animationTimer = Timer.periodic(const Duration(milliseconds: 30), (
+      _animationTimer = Timer.periodic(const Duration(milliseconds: 5), (
         timer,
       ) async {
         if (currentIndex >= allCoordinates.length) {
@@ -337,7 +337,8 @@ class TrackController extends GetxController {
     _currentFrameCompleter = completer;
 
     int frameRate = 16;
-    int totalFrames = durationMillis ~/ frameRate;
+    int totalFrames = (durationMillis / frameRate).ceil();
+    if (totalFrames <= 0) totalFrames = 1;
     int currentFrame = 0;
 
     double bearing = _calculateBearing(start, end);
@@ -350,7 +351,6 @@ class TrackController extends GetxController {
     _frameTimer = Timer.periodic(Duration(milliseconds: frameRate), (
       timer,
     ) async {
-      // التأكد إن المحاكاة مكنتش متوقفة
       if (!_isSimulationRunning || _isPaused) {
         timer.cancel();
         if (!completer.isCompleted) {
@@ -405,7 +405,6 @@ class TrackController extends GetxController {
   Future<void> startSmoothDriverSimulation() async {
     if (mapboxMap == null || directionEntity == null) return;
 
-    // لو متوقفة مؤقتاً وشغلت start ثاني، تكمل من مكانها بدلاً من البداية
     if (_isPaused) {
       return resumeSimulation();
     }
@@ -483,6 +482,8 @@ class TrackController extends GetxController {
   }
 
   Future<void> _runSimulationLoop() async {
+    double carSpeedMps = 120.0;
+
     while (_remainingCoordinates.length > 1 &&
         _isSimulationRunning &&
         !_isPaused) {
@@ -491,22 +492,32 @@ class TrackController extends GetxController {
 
       List<mapbox.Position> remainingRoute = _remainingCoordinates.sublist(1);
 
+      double distance = Geolocator.distanceBetween(
+        start.lat.toDouble(),
+        start.lng.toDouble(),
+        end.lat.toDouble(),
+        end.lng.toDouble(),
+      );
+
+      int durationMillis = ((distance / carSpeedMps) * 1000).toInt();
+
+      if (durationMillis < 10) durationMillis = 10;
+
       mapboxMap!.easeTo(
         mapbox.CameraOptions(
           center: mapbox.Point(coordinates: end),
           zoom: 14.0,
         ),
-        mapbox.MapAnimationOptions(duration: 1000),
+        mapbox.MapAnimationOptions(duration: durationMillis),
       );
 
       bool completedSegment = await _animateCarBetween(
         start,
         end,
-        1000,
+        durationMillis,
         remainingRoute,
       );
 
-      // لو القطعة اكتملت بنجاح (محتصلش Pause أثناء الحركة)، بنشيل النقطة القديمة
       if (completedSegment) {
         _remainingCoordinates.removeAt(0);
       }
