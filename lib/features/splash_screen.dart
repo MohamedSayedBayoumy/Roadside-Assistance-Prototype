@@ -2,6 +2,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../core/connection/connection_services.dart';
 import '../core/constants/app_keys.dart';
 import '../core/constants/fonts.dart';
 import '../core/services/flutter_secure_storage.dart';
@@ -18,6 +19,8 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    InternetConnectionService().init();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startSplash();
     });

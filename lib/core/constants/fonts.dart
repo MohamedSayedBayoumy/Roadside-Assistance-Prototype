@@ -10,6 +10,12 @@ abstract class AppFonts {
     fontWeight: FontWeight.w300,
   );
 
+  static TextStyle get style18 => TextStyle(
+    fontSize: 18,
+    color: Colors.white,
+    fontFamily: enFamily,
+  );
+
   static TextStyle get style15 => TextStyle(
     fontSize: 15,
     color: Colors.black,

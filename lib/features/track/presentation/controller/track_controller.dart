@@ -51,6 +51,11 @@ class TrackController extends GetxController {
 
   final getDirectionsState = ScreenState.initial.obs;
 
+  bool _isPaused = false;
+  List<mapbox.Position> _remainingCoordinates = [];
+  mapbox.Position? _currentCarPosition;
+  Completer<bool>? _currentFrameCompleter;
+
   @override
   void onReady() {
     super.onReady();
@@ -268,8 +273,6 @@ class TrackController extends GetxController {
     }
   }
 
-  Future<void> handleFromPoint() async {}
-
   Future<void> getDirections({required PointModel point}) async {
     if (_driverMarkerManager != null) {
       await mapboxMap!.location.updateSettings(
@@ -324,13 +327,14 @@ class TrackController extends GetxController {
   }
 
   Timer? _frameTimer;
-  Future<void> _animateCarBetween(
+  Future<bool> _animateCarBetween(
     mapbox.Position start,
     mapbox.Position end,
     int durationMillis,
-    List<mapbox.Position> remainingRoute, // <-- ضفنا المتغير ده هنا
+    List<mapbox.Position> remainingRoute,
   ) async {
-    Completer<void> completer = Completer();
+    Completer<bool> completer = Completer<bool>();
+    _currentFrameCompleter = completer;
 
     int frameRate = 16;
     int totalFrames = durationMillis ~/ frameRate;
@@ -346,35 +350,51 @@ class TrackController extends GetxController {
     _frameTimer = Timer.periodic(Duration(milliseconds: frameRate), (
       timer,
     ) async {
+      // التأكد إن المحاكاة مكنتش متوقفة
+      if (!_isSimulationRunning || _isPaused) {
+        timer.cancel();
+        if (!completer.isCompleted) {
+          completer.complete(false);
+        }
+        return;
+      }
+
       currentFrame++;
       double t = currentFrame / totalFrames;
 
       if (t >= 1.0) {
         t = 1.0;
         timer.cancel();
-        completer.complete();
       }
 
       double interpolatedLat = start.lat + ((end.lat - start.lat) * t);
       double interpolatedLng = start.lng + ((end.lng - start.lng) * t);
 
-      mapbox.Position newPosition = mapbox.Position(
-        interpolatedLng,
-        interpolatedLat,
-      );
+      _currentCarPosition = mapbox.Position(interpolatedLng, interpolatedLat);
 
       if (_driverMarker != null) {
-        _driverMarker!.geometry = mapbox.Point(coordinates: newPosition);
+        _driverMarker!.geometry = mapbox.Point(
+          coordinates: _currentCarPosition!,
+        );
         await _driverMarkerManager!.update(_driverMarker!);
       }
 
       if (_animatedPolyline != null && _polylineAnnotationManager != null) {
-        List<mapbox.Position> updatedLine = [newPosition, ...remainingRoute];
+        List<mapbox.Position> updatedLine = [
+          _currentCarPosition!,
+          ...remainingRoute,
+        ];
 
         _animatedPolyline!.geometry = mapbox.LineString(
           coordinates: updatedLine,
         );
         await _polylineAnnotationManager!.update(_animatedPolyline!);
+      }
+
+      if (t >= 1.0) {
+        if (!completer.isCompleted) {
+          completer.complete(true);
+        }
       }
     });
 
@@ -383,8 +403,15 @@ class TrackController extends GetxController {
 
   bool _isSimulationRunning = false;
   Future<void> startSmoothDriverSimulation() async {
-    if (mapboxMap == null) return;
+    if (mapboxMap == null || directionEntity == null) return;
+
+    // لو متوقفة مؤقتاً وشغلت start ثاني، تكمل من مكانها بدلاً من البداية
+    if (_isPaused) {
+      return resumeSimulation();
+    }
+
     _isSimulationRunning = true;
+    _isPaused = false;
 
     try {
       await mapboxMap!.location.updateSettings(
@@ -395,46 +422,99 @@ class TrackController extends GetxController {
       List<PointLatLng> result = PolylinePoints.decodePolyline(
         directionEntity!.routes!.first.geometry!,
       );
-      List<mapbox.Position> routeCoordinates = result.map((point) {
+
+      _remainingCoordinates = result.map((point) {
         return mapbox.Position(point.longitude, point.latitude);
       }).toList();
 
-      if (routeCoordinates.isEmpty) return;
+      if (_remainingCoordinates.isEmpty) return;
 
       _driverMarkerManager ??= await mapboxMap!.annotations
           .createPointAnnotationManager();
       await _driverMarkerManager!.deleteAll();
 
       var initialPointOptions = mapbox.PointAnnotationOptions(
-        geometry: mapbox.Point(coordinates: routeCoordinates.first),
+        geometry: mapbox.Point(coordinates: _remainingCoordinates.first),
         image: MapServices.carIcon,
         iconSize: .3,
       );
 
       _driverMarker = await _driverMarkerManager!.create(initialPointOptions);
+      _currentCarPosition = _remainingCoordinates.first;
 
-      for (int i = 0; i < routeCoordinates.length - 1; i++) {
-        if (!_isSimulationRunning) break;
-
-        mapbox.Position start = routeCoordinates[i];
-        mapbox.Position end = routeCoordinates[i + 1];
-
-        List<mapbox.Position> remainingRoute = routeCoordinates.sublist(i + 1);
-
-        mapboxMap!.easeTo(
-          mapbox.CameraOptions(
-            center: mapbox.Point(coordinates: end),
-            zoom: 14.0,
-          ),
-          mapbox.MapAnimationOptions(duration: 1000),
-        );
-
-        await _animateCarBetween(start, end, 1000, remainingRoute);
-      }
-
-      debugPrint("Driver reached the destination smoothly!");
+      await _runSimulationLoop();
     } catch (e) {
       debugPrint("Error in smooth driver simulation: $e");
+    }
+  }
+
+  void pauseSimulation() {
+    if (!_isSimulationRunning || _isPaused) return;
+
+    _isPaused = true;
+    _isSimulationRunning = false;
+    _frameTimer?.cancel();
+
+    if (_currentCarPosition != null && _remainingCoordinates.isNotEmpty) {
+      _remainingCoordinates[0] = _currentCarPosition!;
+    }
+
+    if (_currentFrameCompleter != null &&
+        !_currentFrameCompleter!.isCompleted) {
+      _currentFrameCompleter!.complete(false);
+    }
+
+    debugPrint(
+      "Simulation paused at: ${_currentCarPosition?.lat}, ${_currentCarPosition?.lng}",
+    );
+  }
+
+  Future<void> resumeSimulation() async {
+    if (!_isPaused || _remainingCoordinates.length < 2) return;
+
+    _isPaused = false;
+    _isSimulationRunning = true;
+
+    debugPrint(
+      "Resuming simulation from: ${_remainingCoordinates.first.lat}, ${_remainingCoordinates.first.lng}",
+    );
+
+    await _runSimulationLoop();
+  }
+
+  Future<void> _runSimulationLoop() async {
+    while (_remainingCoordinates.length > 1 &&
+        _isSimulationRunning &&
+        !_isPaused) {
+      mapbox.Position start = _remainingCoordinates[0];
+      mapbox.Position end = _remainingCoordinates[1];
+
+      List<mapbox.Position> remainingRoute = _remainingCoordinates.sublist(1);
+
+      mapboxMap!.easeTo(
+        mapbox.CameraOptions(
+          center: mapbox.Point(coordinates: end),
+          zoom: 14.0,
+        ),
+        mapbox.MapAnimationOptions(duration: 1000),
+      );
+
+      bool completedSegment = await _animateCarBetween(
+        start,
+        end,
+        1000,
+        remainingRoute,
+      );
+
+      // لو القطعة اكتملت بنجاح (محتصلش Pause أثناء الحركة)، بنشيل النقطة القديمة
+      if (completedSegment) {
+        _remainingCoordinates.removeAt(0);
+      }
+    }
+
+    if (_remainingCoordinates.length <= 1 && !_isPaused) {
+      _isSimulationRunning = false;
+      debugPrint("Driver reached the destination smoothly!");
     }
   }
 

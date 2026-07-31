@@ -52,11 +52,13 @@ dependencies:
   geolocator:
   geocoding:
   pretty_dio_logger:
-  flutter_polyline_points:
+  flutter_polyline_points:  
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  connectivity_plus:
+  internet_connection_checker:
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
