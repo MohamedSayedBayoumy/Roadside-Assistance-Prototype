@@ -23,6 +23,8 @@ class TrackController extends GetxController {
 
   Timer? _debounce;
 
+  CameraState? savedCameraState;
+
   @override
   void onReady() {
     super.onReady();
@@ -46,7 +48,7 @@ class TrackController extends GetxController {
       fromSearchController.text = address;
     }
 
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(const Duration(milliseconds: 500));
     mapboxMap?.flyTo(
       CameraOptions(
         center: Point(
@@ -62,19 +64,20 @@ class TrackController extends GetxController {
     );
   }
 
-  void onCameraMoved(double lat, double lng) {
-    latitude.value = lat;
-    longitude.value = lng;
+  void onCameraMoved(CameraChangedEventData cameraChangedEventData) {
+    latitude.value =
+        cameraChangedEventData.cameraState.center.coordinates.lat as double;
+    longitude.value =
+        cameraChangedEventData.cameraState.center.coordinates.lng as double;
 
     if (_debounce?.isActive ?? false) {
       _debounce!.cancel();
     }
 
     isFetchingAddress.value = true;
-    selectedAddress.value = "جاري تحديد المكان...";
 
     _debounce = Timer(const Duration(milliseconds: 800), () {
-      _fetchAddress(lat, lng);
+      _fetchAddress(latitude.value, longitude.value);
     });
   }
 
@@ -110,6 +113,12 @@ class TrackController extends GetxController {
   void confirmPickedLocation() {
     if (selectedAddress.value.isNotEmpty) {
       toSearchController.text = selectedAddress.value;
+    }
+  }
+
+  Future<void> saveCurrentMapState() async {
+    if (mapboxMap != null) {
+      savedCameraState = await mapboxMap!.getCameraState();
     }
   }
 

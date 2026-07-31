@@ -14,7 +14,6 @@ class BottomSheetBodyWidget extends GetView<TrackController> {
     return ListView(
       controller: scrollController,
       padding: const EdgeInsets.all(15),
-
       children: [
         Center(
           child: Container(
@@ -31,6 +30,7 @@ class BottomSheetBodyWidget extends GetView<TrackController> {
           icon: AppImages.hand,
           hintText: "From",
           controller: controller.fromSearchController,
+          trackingScrollController: controller,
         ),
 
         SizedBox(height: 10),
@@ -39,6 +39,7 @@ class BottomSheetBodyWidget extends GetView<TrackController> {
           icon: AppImages.flag,
           hintText: "To",
           controller: controller.toSearchController,
+          trackingScrollController: controller,
         ),
       ],
     );

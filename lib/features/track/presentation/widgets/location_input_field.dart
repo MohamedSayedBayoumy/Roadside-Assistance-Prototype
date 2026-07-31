@@ -6,6 +6,7 @@ import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/fonts.dart';
 import '../../../../core/constants/images.dart';
 import '../../../../routes/paths.dart';
+import '../controller/track_controller.dart';
 
 class CustomLocationInputField extends StatefulWidget {
   final String icon;
@@ -13,6 +14,7 @@ class CustomLocationInputField extends StatefulWidget {
   final String labelText;
   final String hintText;
   final Color iconColor;
+  final TrackController trackingScrollController;
 
   const CustomLocationInputField({
     super.key,
@@ -21,6 +23,7 @@ class CustomLocationInputField extends StatefulWidget {
     this.labelText = 'To',
     this.hintText = '',
     this.iconColor = Colors.white,
+    required this.trackingScrollController,
   });
 
   @override
@@ -97,7 +100,8 @@ class _CustomLocationInputFieldState extends State<CustomLocationInputField> {
           if (_isFocused) ...[
             const SizedBox(width: 8),
             InkWell(
-              onTap: () {
+              onTap: () async {
+                await widget.trackingScrollController.saveCurrentMapState();
                 Get.toNamed(AppPaths.pickLocation);
               },
               child: FadeIn(

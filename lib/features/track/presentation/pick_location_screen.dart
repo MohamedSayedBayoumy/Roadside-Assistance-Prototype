@@ -1,12 +1,14 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
-import 'package:freelance/core/constants/colors.dart';
-import 'package:freelance/core/constants/images.dart';
-import 'package:freelance/core/widgets/custom_image.dart';
-import 'package:freelance/core/widgets/custom_loading.dart';
 import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
+import '../../../core/constants/colors.dart';
+import '../../../core/constants/images.dart';
+import '../../../core/widgets/custom_image.dart';
+import '../../../core/widgets/custom_loading.dart';
 import 'controller/track_controller.dart';
 import 'widgets/footer_pick_location_widget.dart';
 
@@ -21,60 +23,29 @@ class LocationPickerScreen extends GetView<TrackController> {
           MapWidget(
             key: const ValueKey("mapWidget"),
 
-            onMapCreated: (mapController) =>
-                controller.onMapCreated(mapController, context),
+            onMapCreated: (_) => controller.onMapCreated,
+
+            cameraOptions: controller.savedCameraState != null
+                ? CameraOptions(
+                    center: controller.savedCameraState!.center,
+                    zoom: controller.savedCameraState!.zoom,
+                    bearing: controller.savedCameraState!.bearing,
+                    pitch: controller.savedCameraState!.pitch,
+                  )
+                : CameraOptions(
+                    center: Point(coordinates: Position(30.0444, 31.2357)),
+                    zoom: 12.0,
+                  ),
 
             onCameraChangeListener: (cameraChangedEventData) {
-              final lat =
-                  cameraChangedEventData.cameraState.center.coordinates.lat
-                      as double;
-              final lng =
-                  cameraChangedEventData.cameraState.center.coordinates.lng
-                      as double;
-
-              controller.onCameraMoved(lat, lng);
+              controller.onCameraMoved(cameraChangedEventData);
             },
-
-            cameraOptions: CameraOptions(zoom: 14.0, pitch: 0.0),
           ),
 
-          ZoomIn(
-            delay: Duration(milliseconds: 1100),
+          MapIconWidget(),
 
-            child: Align(
-              alignment: Alignment.center,
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 40.0),
-                child: CustomImage(
-                  path: AppImages.mapMarker,
-                  width: 40,
-                  color: AppColors.mainColor,
-                ),
-              ),
-            ),
-          ),
+          CurrentLocationAsTextWidget(controller: controller),
 
-          ZoomIn(
-            delay: Duration(seconds: 1),
-            child: Align(
-              alignment: Alignment.center,
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 140),
-                child: Container(
-                  padding: EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Obx(
-                    () => controller.isFetchingAddress.value
-                        ? CustomLoading()
-                        : Text(controller.selectedAddress.value),
-                  ),
-                ),
-              ),
-            ),
-          ),
           Positioned(
             bottom: 30,
             left: 15,
@@ -82,6 +53,59 @@ class LocationPickerScreen extends GetView<TrackController> {
             child: FooterPickLocationWidget(controller: controller),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class CurrentLocationAsTextWidget extends StatelessWidget {
+  const CurrentLocationAsTextWidget({super.key, required this.controller});
+
+  final TrackController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return ZoomIn(
+      delay: Duration(milliseconds: 400),
+      child: Align(
+        alignment: Alignment.center,
+        child: Padding(
+          padding: EdgeInsets.only(bottom: 140),
+          child: Container(
+            padding: EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Obx(
+              () => controller.isFetchingAddress.value
+                  ? CustomLoading()
+                  : Text(controller.selectedAddress.value),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class MapIconWidget extends StatelessWidget {
+  const MapIconWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ZoomIn(
+      delay: Duration(milliseconds: 600),
+      child: Align(
+        alignment: Alignment.center,
+        child: Padding(
+          padding: EdgeInsets.only(bottom: 40.0),
+          child: CustomImage(
+            path: AppImages.mapMarker,
+            width: 40,
+            color: AppColors.mainColor,
+          ),
+        ),
       ),
     );
   }
