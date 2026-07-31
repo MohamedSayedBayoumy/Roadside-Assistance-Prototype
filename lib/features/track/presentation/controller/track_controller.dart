@@ -15,7 +15,8 @@ class TrackController extends GetxController {
   MapboxMap? mapboxMap;
 
   RxString selectedAddress = ''.obs;
-  TextEditingController searchController = TextEditingController();
+  TextEditingController fromSearchController = TextEditingController();
+  TextEditingController toSearchController = TextEditingController();
 
   @override
   void onReady() {
@@ -61,9 +62,7 @@ class TrackController extends GetxController {
     );
   }
 
-  static String userLocation = '';
-
-  static Future<String?> getMyLocationAsString(Position position) async {
+  Future<String?> getMyLocationAsString(Position position) async {
     try {
       final placeMarks = await placemarkFromCoordinates(
         position.latitude,
@@ -81,14 +80,12 @@ class TrackController extends GetxController {
       if (parts.isEmpty) {
         return '${position.latitude}, ${position.longitude}';
       }
-      userLocation = parts.join(' , ');
 
-      log('userLocation: $userLocation');
-
-      return userLocation;
+      fromSearchController.text = parts.join(' , ');
     } catch (_) {
       return null;
     }
+    return null;
   }
 
   Future<void> updateAddressFromCenter() async {
@@ -112,38 +109,39 @@ class TrackController extends GetxController {
     }
   }
 
-  Future<void> searchAddress() async {
-    if (searchController.text.trim().isEmpty) return;
-    FocusManager.instance.primaryFocus?.unfocus();
+  // Future<void> searchAddress() async {
+  //   if (searchController.text.trim().isEmpty) return;
+  //   FocusManager.instance.primaryFocus?.unfocus();
 
-    try {
-      List<Location> locations = await locationFromAddress(
-        searchController.text,
-      );
-      if (locations.isNotEmpty) {
-        final lat = locations.first.latitude;
-        final lng = locations.first.longitude;
+  //   try {
+  //     List<Location> locations = await locationFromAddress(
+  //       searchController.text,
+  //     );
+  //     if (locations.isNotEmpty) {
+  //       final lat = locations.first.latitude;
+  //       final lng = locations.first.longitude;
 
-        mapboxMap?.flyTo(
-          CameraOptions(
-            center: Point(coordinates: mapbox.Position(lng, lat)),
-            zoom: 15.0,
-            pitch: 0.0,
-          ),
-          MapAnimationOptions(duration: 1500, startDelay: 0),
-        );
-      }
-    } catch (e) {
-      Get.snackbar(
-        "تنبيه",
-        "لم يتم العثور على المكان، حاول كتابة الاسم بشكل أدق",
-      );
-    }
-  }
+  //       mapboxMap?.flyTo(
+  //         CameraOptions(
+  //           center: Point(coordinates: mapbox.Position(lng, lat)),
+  //           zoom: 15.0,
+  //           pitch: 0.0,
+  //         ),
+  //         MapAnimationOptions(duration: 1500, startDelay: 0),
+  //       );
+  //     }
+  //   } catch (e) {
+  //     Get.snackbar(
+  //       "تنبيه",
+  //       "لم يتم العثور على المكان، حاول كتابة الاسم بشكل أدق",
+  //     );
+  //   }
+  // }
 
   @override
   void onClose() {
-    searchController.dispose();
+    fromSearchController.dispose();
+    toSearchController.dispose();
     super.onClose();
   }
 }

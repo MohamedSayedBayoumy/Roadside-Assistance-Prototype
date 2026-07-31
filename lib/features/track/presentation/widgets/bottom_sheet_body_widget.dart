@@ -1,0 +1,46 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import '../../../../core/constants/images.dart';
+import '../controller/track_controller.dart';
+import 'location_input_field.dart';
+
+class BottomSheetBodyWidget extends GetView<TrackController> {
+  const BottomSheetBodyWidget({super.key, required this.scrollController});
+  final ScrollController scrollController;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      controller: scrollController,
+      padding: const EdgeInsets.all(15),
+
+      children: [
+        Center(
+          child: Container(
+            width: 40,
+            height: 5,
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
+        CustomLocationInputField(
+          icon: AppImages.hand,
+          hintText: "From",
+          controller: controller.fromSearchController,
+        ),
+
+        SizedBox(height: 10),
+
+        CustomLocationInputField(
+          icon: AppImages.flag,
+          hintText: "To",
+          controller: controller.toSearchController,
+        ),
+      ],
+    );
+  }
+}
