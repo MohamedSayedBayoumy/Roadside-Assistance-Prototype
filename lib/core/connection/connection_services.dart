@@ -51,20 +51,30 @@ class InternetConnectionService {
           if (status == InternetConnectionStatus.connected) {
             currentStatus = NetworkStatus.online;
             _controller.add(NetworkStatus.online);
+
             if (Get.isRegistered<TrackController>()) {
               final trackController = Get.find<TrackController>();
-              trackController.resumeSimulation();
+              if (trackController.isTripActive.value == true) {
+                trackController.resumeSimulation();
+              }
             }
-            ScaffoldMessenger.of(
-              AppUtils.navigatorKey.currentContext!,
-            ).hideCurrentSnackBar();
+
+            final context = AppUtils.navigatorKey.currentContext;
+            if (context != null) {
+              // ignore: use_build_context_synchronously
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            }
           } else {
             currentStatus = NetworkStatus.offline;
             _controller.add(NetworkStatus.offline);
+
             AppToast.connectionErrorToast();
+
             if (Get.isRegistered<TrackController>()) {
               final trackController = Get.find<TrackController>();
-              trackController.pauseSimulation();
+              if (trackController.isTripActive.value == true) {
+                trackController.pauseSimulation();
+              }
             }
           }
         });
