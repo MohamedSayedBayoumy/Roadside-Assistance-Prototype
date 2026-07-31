@@ -19,6 +19,7 @@ class CurrentLocationAsTextWidget extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.only(bottom: 140),
           child: Container(
+            margin: EdgeInsets.symmetric(horizontal: 20),
             padding: EdgeInsets.all(15),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -27,7 +28,11 @@ class CurrentLocationAsTextWidget extends StatelessWidget {
             child: Obx(
               () => controller.isFetchingAddress.value
                   ? CustomLoading()
-                  : Text(controller.selectLocation.value.controller.text),
+                  : Text(
+                      controller.selectLocation.value.controller.text,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
             ),
           ),
         ),

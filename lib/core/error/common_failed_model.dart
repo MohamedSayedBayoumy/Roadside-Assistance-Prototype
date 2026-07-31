@@ -76,7 +76,7 @@ class DioFailure extends CommonFailedModel {
 
         return DioFailure(
           failureMessageTitle: "Failed",
-          failureMessage: exception?.response?.data["error"]["message"],
+          failureMessage: exception?.response?.data["message"],
           modelException: exception!,
         );
       case DioExceptionType.cancel:

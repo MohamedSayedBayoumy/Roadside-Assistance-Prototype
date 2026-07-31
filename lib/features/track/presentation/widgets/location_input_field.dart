@@ -41,7 +41,8 @@ class CustomLocationInputField extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () async {
-          if (showPickIcon == true) {
+          if (showPickIcon == true &&
+              trackingScrollController.isTripActive.value == false) {
             await trackingScrollController.saveCurrentMapState();
             final address = await Get.toNamed(AppPaths.pickLocation);
             callBackWithAddress!(address!);

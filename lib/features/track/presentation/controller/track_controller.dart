@@ -10,6 +10,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Position;
 import '../../../../core/constants/colors.dart';
 import '../../../../core/enums/screen_state.dart';
 import '../../../../core/services/map_services.dart';
+import '../../../../core/services/toasts.dart';
 import '../../domain/entity/direction_entity.dart';
 import '../../domain/entity/latlong.dart';
 import '../../domain/entity/point_model.dart';
@@ -61,10 +62,19 @@ class TrackController extends GetxController {
   RxBool isTripActive = false.obs;
 
   RxBool isRouteAnimationFinished = false.obs;
+
+  String errorMessage = "";
+
   @override
   void onReady() {
     super.onReady();
     isLayoutReady.value = true;
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    listenerScreenState();
   }
 
   void onMapCreated(MapboxMap controller) {
@@ -310,6 +320,9 @@ class TrackController extends GetxController {
 
     result.fold(
       (f) {
+        errorMessage = (f.failureMessage ?? "").toString();
+
+        toPoint.value.controller.clear();
         getDirectionsState.value = ScreenState.failed;
       },
       (r) async {
@@ -592,6 +605,21 @@ class TrackController extends GetxController {
         curve: Curves.easeInOut,
       );
     }
+  }
+
+  Worker listenerScreenState() {
+    return ever(getDirectionsState, (state) {
+      switch (state) {
+        case ScreenState.failed:
+          AppToast.failed(description: errorMessage);
+          break;
+
+        case ScreenState.loaded:
+        case ScreenState.initial:
+        case ScreenState.loading:
+          break;
+      }
+    });
   }
 
   @override
