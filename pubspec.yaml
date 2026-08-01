@@ -54,6 +54,7 @@ dependencies:
   pretty_dio_logger:
   flutter_polyline_points: 
   flutter_background_service: 
+  mocktail:
 
 dev_dependencies:
   flutter_test:
