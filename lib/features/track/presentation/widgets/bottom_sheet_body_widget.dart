@@ -1,11 +1,10 @@
-import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
-import 'package:freelance/core/widgets/custom_button.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/constants/images.dart';
 import '../controller/track_controller.dart';
 import 'location_input_field.dart';
+import 'start_end_trip_button_widget.dart';
 
 class BottomSheetBodyWidget extends GetView<TrackController> {
   const BottomSheetBodyWidget({super.key, required this.scrollController});
@@ -54,18 +53,7 @@ class BottomSheetBodyWidget extends GetView<TrackController> {
 
           if (controller.toPoint.value.lat != null &&
               controller.isRouteAnimationFinished.value == true) ...[
-            ZoomIn(
-              child: CustomButton(
-                text: controller.isTripActive.value == false ? "Start" : "End",
-                onPressed: () {
-                  if (controller.isTripActive.value == false) {
-                    controller.startSmoothDriverSimulation();
-                  } else {
-                    controller.cancelTrip();
-                  }
-                },
-              ),
-            ),
+            StartEndTripButtonWidget(),
           ],
         ],
       );

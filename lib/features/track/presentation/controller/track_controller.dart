@@ -22,6 +22,8 @@ class TrackController extends GetxController {
   late StreamSubscription _networkSubscription;
 
   TrackController({required this.trackUseCase});
+
+  Rx<ConnectionStatus> connectionStatus = ConnectionStatus.connected.obs;
   RxBool isLayoutReady = false.obs;
   MapboxMap? mapboxMap;
   DirectionEntity? directionEntity;
@@ -78,6 +80,7 @@ class TrackController extends GetxController {
     super.onInit();
     listenerScreenState();
     _networkSubscription = NetworkService().statusStream.listen((status) {
+      connectionStatus.value = status;
       _handleNetworkStatus(status);
     });
   }
@@ -95,6 +98,8 @@ class TrackController extends GetxController {
       AppToast.connectionToast();
       if (isTripActive.value == true) {
         resumeSimulation();
+      } else if (fromPoint.value.lat == null) {
+        getUserPosition();
       }
     }
   }
@@ -108,35 +113,41 @@ class TrackController extends GetxController {
   }
 
   Future<void> getUserPosition() async {
-    userPosition = await MapServices.getCurrentLocation();
-    if (userPosition == null) return;
+    try {
+      userPosition = await MapServices.getCurrentLocation();
+      if (userPosition == null) return;
 
-    String? address = await MapServices.getLocationAsString(userPosition!);
-    if (address != null) {
-      fromPoint.value.controller.text = address;
-      fromPoint.value.lat = userPosition!.latitude;
-      fromPoint.value.long = userPosition!.longitude;
-    }
+      String? address = await MapServices.getLocationAsString(userPosition!);
+      if (address != null) {
+        fromPoint.value.controller.text = address;
+        fromPoint.value.lat = userPosition!.latitude;
+        fromPoint.value.long = userPosition!.longitude;
+      }
 
-    const animationDurationMillis = 2500;
+      const animationDurationMillis = 2500;
 
-    mapboxMap?.flyTo(
-      CameraOptions(
-        center: Point(
-          coordinates: mapbox.Position(
-            userPosition!.longitude,
-            userPosition!.latitude,
+      mapboxMap?.flyTo(
+        CameraOptions(
+          center: Point(
+            coordinates: mapbox.Position(
+              userPosition!.longitude,
+              userPosition!.latitude,
+            ),
           ),
+          zoom: 15.0,
+          pitch: 45.0,
         ),
-        zoom: 15.0,
-        pitch: 45.0,
-      ),
-      MapAnimationOptions(duration: animationDurationMillis, startDelay: 0),
-    );
+        MapAnimationOptions(duration: animationDurationMillis, startDelay: 0),
+      );
 
-    await Future.delayed(const Duration(milliseconds: animationDurationMillis));
+      await Future.delayed(
+        const Duration(milliseconds: animationDurationMillis),
+      );
 
-    isMapAnimationFinished.value = true;
+      isMapAnimationFinished.value = true;
+    } on Exception catch (_) {
+      isMapAnimationFinished.value = false;
+    }
   }
 
   void onCameraMoved(CameraChangedEventData cameraChangedEventData) {
