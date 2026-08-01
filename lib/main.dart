@@ -6,6 +6,7 @@ import 'package:toastification/toastification.dart';
 
 import 'core/app_utils.dart';
 import 'core/constants/colors.dart';
+import 'core/services/back_ground_services.dart';
 import 'core/services/ffi_services.dart';
 import 'core/services/hive_services.dart';
 import 'core/services/ios_check.dart';
@@ -23,8 +24,8 @@ Future<void> main() async {
   MapServices.getOrAddCustomMarker();
   MapServices.carMarker();
   MapboxOptions.setAccessToken(FFIHelper.fetchStringFromC());
+  // await initializeService();
 
-  // InternetConnectionService().init();
 
   runApp(ToastificationWrapper(child: const MyApp()));
 }

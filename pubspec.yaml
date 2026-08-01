@@ -52,7 +52,8 @@ dependencies:
   geolocator:
   geocoding:
   pretty_dio_logger:
-  flutter_polyline_points:  
+  flutter_polyline_points: 
+  flutter_background_service: 
 
 dev_dependencies:
   flutter_test:
