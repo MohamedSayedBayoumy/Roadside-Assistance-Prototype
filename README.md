@@ -1,3 +1,7 @@
+# ------------------- Required -------------------
+- a **Secret/Private Token** is required to download the SDK binaries during the build process. For security reasons, this token is not included in the repository.
+
+
 # ------------------- Architecture -------------------
 
 **1. Maintainability & Separation of Concerns**
