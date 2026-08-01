@@ -1,88 +1,63 @@
-// ignore_for_file: depend_on_referenced_packages
-
 import 'dart:async';
+import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:internet_connection_checker/internet_connection_checker.dart';
 
-import '../../features/track/presentation/controller/track_controller.dart';
-import '../app_utils.dart';
-import '../services/toasts.dart';
+enum ConnectionStatus { connected, offline }
 
-enum NetworkStatus { online, offline }
+class NetworkService {
+  NetworkService._internal();
+  static final NetworkService _instance = NetworkService._internal();
+  factory NetworkService() => _instance;
 
-class InternetConnectionService {
-  // Singleton
-  static final InternetConnectionService _instance =
-      InternetConnectionService._internal();
-  factory InternetConnectionService() => _instance;
-  InternetConnectionService._internal();
+  final _statusController = StreamController<ConnectionStatus>.broadcast();
 
-  final Connectivity _connectivity = Connectivity();
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
-  StreamSubscription<InternetConnectionStatus>? _internetCheckerSubscription;
+  Stream<ConnectionStatus> get statusStream =>
+      _statusController.stream.distinct();
 
-  final StreamController<NetworkStatus> _controller =
-      StreamController<NetworkStatus>.broadcast();
+  ConnectionStatus _currentStatus = ConnectionStatus.connected;
+  ConnectionStatus get currentStatus => _currentStatus;
 
-  Stream<NetworkStatus> get stream => _controller.stream;
-
-  NetworkStatus currentStatus = NetworkStatus.online;
-
-  void init() {
-    _monitorInternetConnection();
-  }
-
-  void _monitorInternetConnection() {
-    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((
-      result,
-    ) {
-      _setupInternetChecker();
+  void initialize() {
+    checkConnection();
+    Connectivity().onConnectivityChanged.listen((result) {
+      checkConnection(connectivityResult: result);
     });
   }
 
-  void _setupInternetChecker() {
-    _internetCheckerSubscription?.cancel();
+  Future<void> checkConnection({
+    List<ConnectivityResult>? connectivityResult,
+  }) async {
+    final results =
+        connectivityResult ?? await Connectivity().checkConnectivity();
 
-    _internetCheckerSubscription = InternetConnectionChecker.createInstance()
-        .onStatusChange
-        .listen((status) {
-          if (status == InternetConnectionStatus.connected) {
-            currentStatus = NetworkStatus.online;
-            _controller.add(NetworkStatus.online);
+    if (results.contains(ConnectivityResult.none)) {
+      _updateStatus(ConnectionStatus.offline);
+      return;
+    }
 
-            if (Get.isRegistered<TrackController>()) {
-              final trackController = Get.find<TrackController>();
-              if (trackController.isTripActive.value == true) {
-                trackController.resumeSimulation();
-              }
-            }
+    bool hasInternet = await _hasActualInternet();
+    _updateStatus(
+      hasInternet ? ConnectionStatus.connected : ConnectionStatus.offline,
+    );
+  }
 
-            final context = AppUtils.navigatorKey.currentContext;
-            if (context != null) {
-              // ignore: use_build_context_synchronously
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            }
-          } else {
-            currentStatus = NetworkStatus.offline;
-            _controller.add(NetworkStatus.offline);
+  Future<bool> _hasActualInternet() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } on SocketException catch (_) {
+      return false;
+    }
+  }
 
-            AppToast.connectionErrorToast();
-
-            if (Get.isRegistered<TrackController>()) {
-              final trackController = Get.find<TrackController>();
-              if (trackController.isTripActive.value == true) {
-                trackController.pauseSimulation();
-              }
-            }
-          }
-        });
+  void _updateStatus(ConnectionStatus status) {
+    if (_currentStatus != status) {
+      _currentStatus = status;
+      _statusController.add(status);
+    }
   }
 
   void dispose() {
-    _connectivitySubscription?.cancel();
-    _internetCheckerSubscription?.cancel();
-    _controller.close();
+    _statusController.close();
   }
 }

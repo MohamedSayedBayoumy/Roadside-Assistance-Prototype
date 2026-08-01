@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:toastification/toastification.dart';
 
 import '../app_utils.dart';
-import '../widgets/body_of_error_message.dart';
 
 abstract class AppToast {
   static void success({required String description, String? title}) {
@@ -59,18 +59,29 @@ abstract class AppToast {
   }
 
   static void connectionErrorToast() {
-    final snackBar = SnackBar(
-      elevation: 0,
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: Colors.red.shade600,
+    Get.rawSnackbar(
+      title: 'No Internet Connection',
+      message: 'Please check your internet connection or Wi-Fi',
+      isDismissible: true,
       duration: const Duration(days: 1),
-      padding: EdgeInsets.zero,
-      content: BodyOfErrorMessageWidget(),
-      margin: EdgeInsets.only(left: 0, right: 0),
+      backgroundColor: Colors.red[800]!,
+      icon: const Icon(Icons.wifi_off, color: Colors.white),
+      margin: EdgeInsets.zero,
+      borderRadius: 0,
+      snackPosition: SnackPosition.TOP,
     );
+  }
 
-    ScaffoldMessenger.of(
-      AppUtils.navigatorKey.currentContext!,
-    ).showSnackBar(snackBar);
+  static void connectionToast() {
+    Get.rawSnackbar(
+      title: 'Connection Restored',
+      message: 'You are back online',
+      backgroundColor: Colors.green[800]!,
+      duration: const Duration(seconds: 2),
+      icon: const Icon(Icons.wifi, color: Colors.white),
+      margin: const EdgeInsets.all(10),
+      borderRadius: 8,
+      snackPosition: SnackPosition.TOP,
+    );
   }
 }

@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Position;
 
+import '../../../../core/connection/connection_services.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/enums/screen_state.dart';
 import '../../../../core/services/map_services.dart';
@@ -18,6 +19,7 @@ import '../../domain/use_case/track_use_case.dart';
 
 class TrackController extends GetxController {
   final TrackUseCase trackUseCase;
+  late StreamSubscription _networkSubscription;
 
   TrackController({required this.trackUseCase});
   RxBool isLayoutReady = false.obs;
@@ -75,6 +77,26 @@ class TrackController extends GetxController {
   void onInit() {
     super.onInit();
     listenerScreenState();
+    _networkSubscription = NetworkService().statusStream.listen((status) {
+      _handleNetworkStatus(status);
+    });
+  }
+
+  void _handleNetworkStatus(ConnectionStatus status) {
+    if (Get.isSnackbarOpen) {
+      Get.closeCurrentSnackbar();
+    }
+    if (status == ConnectionStatus.offline) {
+      AppToast.connectionErrorToast();
+      if (isTripActive.value == true) {
+        pauseSimulation();
+      }
+    } else if (status == ConnectionStatus.connected) {
+      AppToast.connectionToast();
+      if (isTripActive.value == true) {
+        resumeSimulation();
+      }
+    }
   }
 
   void onMapCreated(MapboxMap controller) {
@@ -95,7 +117,6 @@ class TrackController extends GetxController {
       fromPoint.value.lat = userPosition!.latitude;
       fromPoint.value.long = userPosition!.longitude;
     }
-
 
     const animationDurationMillis = 2500;
 
@@ -626,6 +647,7 @@ class TrackController extends GetxController {
     _debounce?.cancel();
     fromPoint.value.controller.dispose();
     toPoint.value.controller.dispose();
+    _networkSubscription.cancel();
     super.onClose();
   }
 }
